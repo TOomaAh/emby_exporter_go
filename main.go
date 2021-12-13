@@ -18,6 +18,7 @@ var Options struct {
 	Emby   string `short:"e" long:"emby" description:"emby url (don't forget scheme)" default:"http://localhost:8096"`
 	Token  string `short:"t" long:"token" required:"true"`
 	UserID string `short:"u" long:"user-id" required:"true"`
+	Port   int    `short:"p" long:"port" default:"9210"`
 	Sleep  int    `short:"s" long:"sleep" default:"10"`
 }
 
@@ -39,6 +40,8 @@ var (
 )
 
 func updateMetrics(emby emby.Emby, sleep time.Duration) {
+
+	log.Printf("Server listening on 0.0.0.0:%d\n", Options.Port)
 
 	for {
 		info, _ := emby.GetSystemInfo()
@@ -98,10 +101,9 @@ func main() {
 	sleepDuration := time.Duration(Options.Sleep)
 
 	var emby = emby.New(Options.Emby, Options.Token, Options.UserID)
-
 	go updateMetrics(emby, sleepDuration)
 
 	http.Handle("/metrics", promhttp.Handler())
-	http.ListenAndServe(":2112", nil)
+	http.ListenAndServe(fmt.Sprintf(":%d", Options.Port), nil)
 
 }
