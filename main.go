@@ -82,12 +82,11 @@ func updateMetrics(emby emby.Emby, sleep time.Duration) {
 
 }
 
-func init() {
+func registerMetrics(r *prometheus.Registry) {
 	// Metrics have to be registered to be exposed:
-	prometheus.NewRegistry()
-	prometheus.MustRegister(embyInfo)
-	prometheus.MustRegister(embyMediaItem)
-	prometheus.MustRegister(embySession)
+	r.MustRegister(embyInfo)
+	r.MustRegister(embyMediaItem)
+	r.MustRegister(embySession)
 }
 
 func main() {
@@ -102,8 +101,10 @@ func main() {
 
 	var emby = emby.New(Options.Emby, Options.Token, Options.UserID)
 	go updateMetrics(emby, sleepDuration)
-
-	http.Handle("/metrics", promhttp.Handler())
+	r := prometheus.NewRegistry()
+	registerMetrics(r)
+	handler := promhttp.HandlerFor(r, promhttp.HandlerOpts{})
+	http.Handle("/metrics", handler)
 	http.ListenAndServe(fmt.Sprintf(":%d", Options.Port), nil)
 
 }
