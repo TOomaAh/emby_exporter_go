@@ -4,5 +4,6 @@ go 1.16
 
 require (
 	github.com/jessevdk/go-flags v1.5.0 // indirect
+	github.com/oschwald/geoip2-golang v1.5.0 // indirect
 	github.com/prometheus/client_golang v1.11.0 // indirect
 )
