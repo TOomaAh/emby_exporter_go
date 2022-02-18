@@ -68,6 +68,17 @@ type UserView struct {
 	LockData                bool          `json:"LockData"`
 }
 
+type Library struct {
+	Name      string `json:"Name"`
+	ServerID  string `json:"ServerId"`
+	ID        string `json:"Id"`
+	IsFolder  bool   `json:"IsFolder"`
+	Type      string `json:"Type"`
+	ImageTags struct {
+	} `json:"ImageTags"`
+	BackdropImageTags []interface{} `json:"BackdropImageTags"`
+}
+
 type Sessions struct {
 	PlayState struct {
 		CanSeek             bool   `json:"CanSeek"`
@@ -139,43 +150,43 @@ type Sessions struct {
 		LocalTrailerCount       int     `json:"LocalTrailerCount"`
 		PrimaryImageAspectRatio float64 `json:"PrimaryImageAspectRatio"`
 		MediaStreams            []struct {
-			Codec                  string `json:"Codec"`
-			ColorTransfer          string `json:"ColorTransfer,omitempty"`
-			ColorPrimaries         string `json:"ColorPrimaries,omitempty"`
-			ColorSpace             string `json:"ColorSpace,omitempty"`
-			TimeBase               string `json:"TimeBase"`
-			CodecTimeBase          string `json:"CodecTimeBase"`
-			VideoRange             string `json:"VideoRange,omitempty"`
-			DisplayTitle           string `json:"DisplayTitle"`
-			NalLengthSize          string `json:"NalLengthSize,omitempty"`
-			IsInterlaced           bool   `json:"IsInterlaced"`
-			IsAVC                  bool   `json:"IsAVC,omitempty"`
-			BitRate                int    `json:"BitRate"`
-			BitDepth               int    `json:"BitDepth,omitempty"`
-			RefFrames              int    `json:"RefFrames,omitempty"`
-			IsDefault              bool   `json:"IsDefault"`
-			IsForced               bool   `json:"IsForced"`
-			Height                 int    `json:"Height,omitempty"`
-			Width                  int    `json:"Width,omitempty"`
-			AverageFrameRate       int    `json:"AverageFrameRate,omitempty"`
-			RealFrameRate          int    `json:"RealFrameRate,omitempty"`
-			Profile                string `json:"Profile,omitempty"`
-			Type                   string `json:"Type"`
-			AspectRatio            string `json:"AspectRatio,omitempty"`
-			Index                  int    `json:"Index"`
-			IsExternal             bool   `json:"IsExternal"`
-			IsTextSubtitleStream   bool   `json:"IsTextSubtitleStream"`
-			SupportsExternalStream bool   `json:"SupportsExternalStream"`
-			Protocol               string `json:"Protocol"`
-			PixelFormat            string `json:"PixelFormat,omitempty"`
-			Level                  int    `json:"Level,omitempty"`
-			IsAnamorphic           bool   `json:"IsAnamorphic,omitempty"`
-			Language               string `json:"Language,omitempty"`
-			Title                  string `json:"Title,omitempty"`
-			DisplayLanguage        string `json:"DisplayLanguage,omitempty"`
-			ChannelLayout          string `json:"ChannelLayout,omitempty"`
-			Channels               int    `json:"Channels,omitempty"`
-			SampleRate             int    `json:"SampleRate,omitempty"`
+			Codec                  string  `json:"Codec"`
+			ColorTransfer          string  `json:"ColorTransfer,omitempty"`
+			ColorPrimaries         string  `json:"ColorPrimaries,omitempty"`
+			ColorSpace             string  `json:"ColorSpace,omitempty"`
+			TimeBase               string  `json:"TimeBase"`
+			CodecTimeBase          string  `json:"CodecTimeBase"`
+			VideoRange             string  `json:"VideoRange,omitempty"`
+			DisplayTitle           string  `json:"DisplayTitle"`
+			NalLengthSize          string  `json:"NalLengthSize,omitempty"`
+			IsInterlaced           bool    `json:"IsInterlaced"`
+			IsAVC                  bool    `json:"IsAVC,omitempty"`
+			BitRate                int     `json:"BitRate"`
+			BitDepth               int     `json:"BitDepth,omitempty"`
+			RefFrames              int     `json:"RefFrames,omitempty"`
+			IsDefault              bool    `json:"IsDefault"`
+			IsForced               bool    `json:"IsForced"`
+			Height                 int     `json:"Height,omitempty"`
+			Width                  int     `json:"Width,omitempty"`
+			AverageFrameRate       float64 `json:"AverageFrameRate,omitempty"`
+			RealFrameRate          float64 `json:"RealFrameRate,omitempty"`
+			Profile                string  `json:"Profile,omitempty"`
+			Type                   string  `json:"Type"`
+			AspectRatio            string  `json:"AspectRatio,omitempty"`
+			Index                  int     `json:"Index"`
+			IsExternal             bool    `json:"IsExternal"`
+			IsTextSubtitleStream   bool    `json:"IsTextSubtitleStream"`
+			SupportsExternalStream bool    `json:"SupportsExternalStream"`
+			Protocol               string  `json:"Protocol"`
+			PixelFormat            string  `json:"PixelFormat,omitempty"`
+			Level                  int     `json:"Level,omitempty"`
+			IsAnamorphic           bool    `json:"IsAnamorphic,omitempty"`
+			Language               string  `json:"Language,omitempty"`
+			Title                  string  `json:"Title,omitempty"`
+			DisplayLanguage        string  `json:"DisplayLanguage,omitempty"`
+			ChannelLayout          string  `json:"ChannelLayout,omitempty"`
+			Channels               int     `json:"Channels,omitempty"`
+			SampleRate             int     `json:"SampleRate,omitempty"`
 		} `json:"MediaStreams"`
 		ImageTags struct {
 			Primary string `json:"Primary"`

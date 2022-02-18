@@ -102,7 +102,6 @@ func registerMetrics(r *prometheus.Registry) {
 }
 
 func main() {
-
 	_, err := flags.ParseArgs(&Options, os.Args)
 
 	if err != nil {
