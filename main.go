@@ -1,18 +1,11 @@
 package main
 
 import (
-	"TOomaAh/emby_exporter_go/emby"
-	"TOomaAh/emby_exporter_go/geoip"
-	"fmt"
 	"log"
-	"net/http"
 	"os"
-	"strconv"
-	"time"
 
 	"github.com/jessevdk/go-flags"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Coordinate struct {
@@ -45,7 +38,7 @@ var (
 	}, []string{"username", "client", "isPaused", "remoteEndPoint", "nowPlayingItemName", "nowPlayingItemType", "latitude", "longitude"})
 )
 
-func updateMetrics(emby emby.Emby, sleep time.Duration) {
+/*func updateMetrics(emby emby.Emby, sleep time.Duration) {
 	log.Printf("Server listening on 0.0.0.0:%d\n", Options.Port)
 
 	for {
@@ -92,7 +85,7 @@ func updateMetrics(emby emby.Emby, sleep time.Duration) {
 		time.Sleep(sleep * time.Second)
 	}
 
-}
+}*/
 
 func registerMetrics(r *prometheus.Registry) {
 	// Metrics have to be registered to be exposed:
@@ -108,14 +101,14 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	sleepDuration := time.Duration(Options.Sleep)
+	//sleepDuration := time.Duration(Options.Sleep)
 
-	var emby = emby.New(Options.Emby, Options.Token, Options.UserID)
+	/*var emby = emby.NewServer(Options.Emby, Options.Token, Options.UserID)
 	go updateMetrics(emby, sleepDuration)
 	r := prometheus.NewRegistry()
 	registerMetrics(r)
 	handler := promhttp.HandlerFor(r, promhttp.HandlerOpts{})
 	http.Handle("/metrics", handler)
-	http.ListenAndServe(fmt.Sprintf(":%d", Options.Port), nil)
+	http.ListenAndServe(fmt.Sprintf(":%d", Options.Port), nil)*/
 
 }

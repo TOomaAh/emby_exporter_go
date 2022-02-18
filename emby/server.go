@@ -81,6 +81,38 @@ func (s *Server) GetSessions() (*[]Sessions, error) {
 	return &sessionResult, nil
 }
 
+func (s *Server) GetSessionsSize() (int, error) {
+	sessions, err := s.GetSessions()
+	if err != nil {
+		return 0, err
+	}
+
+	return len(*sessions), nil
+}
+
+func (s *Server) GetLibrarySize(libraryInfo *LibraryInfo) (int, error) {
+	var librarySize int
+	resp, err := s.request("GET", fmt.Sprintf(
+		//Ok I need minimum information. Only one Item and api returns the total number of items
+		"/Users/%s/Items?IncludeItemTypes=Movie&Recursive=true&Fields=BasicSyncInfo&EnableImageTypes=Primary&ParentId=%s&Limit=1",
+		s.UserID,
+		libraryInfo.ID), "")
+
+	if err != nil {
+		return 0, err
+	}
+
+	var library Library
+	err = json.Unmarshal(resp, &library)
+
+	if err != nil {
+		return 0, err
+	}
+	librarySize = library.TotalRecordCount
+
+	return librarySize, nil
+}
+
 func (s *Server) request(method string, path string, body string) ([]byte, error) {
 	req, _ := http.NewRequest(method, fmt.Sprintf("%s%s", s.Url, path), strings.NewReader(body))
 	req.Header.Set("X-Emby-Token", s.Token)

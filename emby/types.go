@@ -68,7 +68,7 @@ type UserView struct {
 	LockData                bool          `json:"LockData"`
 }
 
-type Library struct {
+type LibraryInfo struct {
 	Name      string `json:"Name"`
 	ServerID  string `json:"ServerId"`
 	ID        string `json:"Id"`
@@ -77,6 +77,32 @@ type Library struct {
 	ImageTags struct {
 	} `json:"ImageTags"`
 	BackdropImageTags []interface{} `json:"BackdropImageTags"`
+}
+
+type Library struct {
+	Items            []*Item `json:"Items"`
+	TotalRecordCount int     `json:"TotalRecordCount"`
+}
+
+type Item struct {
+	Name         string `json:"Name"`
+	ServerID     string `json:"ServerId"`
+	ID           string `json:"Id"`
+	SupportsSync bool   `json:"SupportsSync"`
+	RunTimeTicks int64  `json:"RunTimeTicks"`
+	IsFolder     bool   `json:"IsFolder"`
+	Type         string `json:"Type"`
+	UserData     struct {
+		PlaybackPositionTicks int       `json:"PlaybackPositionTicks"`
+		PlayCount             int       `json:"PlayCount"`
+		IsFavorite            bool      `json:"IsFavorite"`
+		LastPlayedDate        time.Time `json:"LastPlayedDate"`
+		Played                bool      `json:"Played"`
+	} `json:"UserData"`
+	ImageTags struct {
+		Primary string `json:"Primary"`
+	} `json:"ImageTags"`
+	MediaType string `json:"MediaType"`
 }
 
 type Sessions struct {
