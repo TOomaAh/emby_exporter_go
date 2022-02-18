@@ -70,6 +70,8 @@ func (s *Server) GetSessions() (*[]Sessions, error) {
 		return nil, err
 	}
 	var sessionResult []Sessions
+
+	//To retrieve only the playback sessions and not the connected devices
 	for i, session := range sessions {
 		if session.PlayState.PlayMethod != "" {
 			sessionResult = append(sessionResult, sessions[i])
