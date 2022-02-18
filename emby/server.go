@@ -43,13 +43,13 @@ func (s *Server) GetServerInfo() (*SystemInfo, error) {
 	return &systemInfo, nil
 }
 
-func (s *Server) GetLibrary() (*[]Library, error) {
+func (s *Server) GetLibrary() (*[]LibraryInfo, error) {
 	resp, err := s.request("GET", "/Items", "")
 	if err != nil {
 		return nil, err
 	}
 
-	var library []Library
+	var library []LibraryInfo
 	err = json.Unmarshal(resp, &library)
 	if err != nil {
 		return nil, err

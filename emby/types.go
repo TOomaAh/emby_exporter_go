@@ -287,3 +287,14 @@ type ImageTags struct {
 type MediaItemList struct {
 	Items []UserView `json:"Items"`
 }
+
+type LibraryMetrics struct {
+	Name string
+	Size int
+}
+type ServerMetrics struct {
+	Info           *SystemInfo
+	LibraryMetrics []LibraryMetrics
+	Sessions       []Sessions
+	SessionsCount  int
+}
