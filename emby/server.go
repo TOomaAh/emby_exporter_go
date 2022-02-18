@@ -16,11 +16,6 @@ type Server struct {
 	Port   int
 }
 
-var headers = map[string]string{
-	"Content-Type": "application/json",
-	"X-Emby-Token": "",
-}
-
 func NewServer(url, token, userID string, port int) *Server {
 
 	server := &Server{
