@@ -22,7 +22,7 @@ docker run -d -it \
    -e EMBYPORT=8096 \
    -e USERID=youruserid \
    -e TOKEN=yourembytoken \
-   emby_exporter
+   bagul/goemby_exporter:latest
 ```
 
 This project will end up in a docker to facilitate its use.
