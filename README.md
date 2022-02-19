@@ -1,13 +1,7 @@
 # Emby Exporter
 
 Hi there!
-At first sorry if the development of the project is slow. I am a student and unfortunately I have very little time for myself! I'll probably rewrite some code a few times, I'll probably stop working on it for a while and start again but I'll finish this project because I need it.
-
-Basically: Emby is TOP! But some things are missing like a metric exporter.
-
-Currently the project doesn't look like much but ONE DAY it will be perfect. If you want to help me go ahead ! Little Pull Request and it's done. Any help is good to take !
-
-Thanks for your patience <3
+Normally the project works. I invite you to try it, I have to refine it a bit to get some logs of things like that. I invite you to try it and if there is a problem or if you have a request don't hesitate to write an issue :)
 
 
 ## For build this project. It's simple
