@@ -76,12 +76,8 @@ func (s *Server) GetSessions() (*[]SessionsMetrics, error) {
 		if session.PlayState.PlayMethod != "" {
 			ip := geoip.New(session.RemoteEndPoint)
 			information, err := ip.GetInfo()
-			var lat, long float64
-			if err != nil {
-				fmt.Println(err)
-				lat = 0.0
-				long = 0.0
-			} else {
+			var lat, long float64 = 0.0, 0.0
+			if err == nil {
 				lat = information.Lat
 				long = information.Lon
 			}
