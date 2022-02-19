@@ -9,18 +9,18 @@ Normally the project works. I invite you to try it, I have to refine it a bit to
 go build .`
 
 
-## To build the docker image: 
+## To build the docker image:
 
 `docker build -t emby_exporter .`
 ```
-docker run \
+docker run -d -it \
    --name=emby_exporter \
    -p 9210:9210 \ #OPTIONAL
-   -v PORT=9210 \
-   -v EMBYURL=http://localhost \
-   -v EMBYPORT=8096 \
-   -v USERID=youruserid \
-   -v TOKEN=yourembytoken \
+   -e PORT=9210 \
+   -e EMBYURL=http://localhost \
+   -e EMBYPORT=8096 \
+   -e USERID=youruserid \
+   -e TOKEN=yourembytoken \
    emby_exporter
 ```
 

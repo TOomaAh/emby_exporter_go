@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 port=$PORT
 if [ -z "$port" ]; then
     port=9210
@@ -8,12 +8,18 @@ if [ -z "$embyport" ]; then
     embyport=8096
 fi
 
+scheme=$SCHEME
+if [ -z "$scheme" ]; then
+    scheme=http
+fi
+
 url=$EMBYURL
-if [ -z "$URL" ]; then
-    URL=http://localhost:$embyport
+if [ -z "$url" ]; then
+    URL=${scheme}localhost:$embyport
 fi
 embytoken=$TOKEN
-if [ -z "$embytoken" ]; then
+echo $embytoken
+if [ -z "${embytoken}" ]; then
     echo "You must provide a token for the emby server"
     exit 1
 fi
@@ -24,4 +30,4 @@ if [ -z "$useridemby" ]; then
     exit 1
 fi
 
-./emby-server --port $port --emby $url --embyport $embyport --token $embytoken --user-id $useridemby
+./emby_exporter --port $port --emby $url --embyport $embyport --token $embytoken --user-id $useridemby
