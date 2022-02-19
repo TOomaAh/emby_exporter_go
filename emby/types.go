@@ -348,6 +348,16 @@ type MediaItemList struct {
 	Items []UserView `json:"Items"`
 }
 
+type SessionsMetrics struct {
+	Username           string
+	Client             string
+	IsPaused           bool
+	RemoteEndPoint     string
+	Latitude           float64
+	Longitude          float64
+	NowPlayingItemName string
+	NowPlayingItemType string
+}
 type LibraryMetrics struct {
 	Name string
 	Size int
@@ -355,6 +365,6 @@ type LibraryMetrics struct {
 type ServerMetrics struct {
 	Info           *SystemInfo
 	LibraryMetrics []LibraryMetrics
-	Sessions       []Sessions
+	Sessions       []SessionsMetrics
 	SessionsCount  int
 }

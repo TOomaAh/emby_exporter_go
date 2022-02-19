@@ -1,6 +1,7 @@
 package emby
 
 import (
+	"TOomaAh/emby_exporter_go/geoip"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -57,7 +58,7 @@ func (s *Server) GetLibrary() (*LibraryInfo, error) {
 	return &library, nil
 }
 
-func (s *Server) GetSessions() (*[]Sessions, error) {
+func (s *Server) GetSessions() (*[]SessionsMetrics, error) {
 	resp, err := s.request("GET", "/Sessions", "")
 	if err != nil {
 		return nil, err
@@ -68,12 +69,32 @@ func (s *Server) GetSessions() (*[]Sessions, error) {
 	if err != nil {
 		return nil, err
 	}
-	var sessionResult []Sessions
+	var sessionResult []SessionsMetrics
 
 	//To retrieve only the playback sessions and not the connected devices
-	for i, session := range sessions {
+	for _, session := range sessions {
 		if session.PlayState.PlayMethod != "" {
-			sessionResult = append(sessionResult, sessions[i])
+			ip := geoip.New(session.RemoteEndPoint)
+			information, err := ip.GetInfo()
+			var lat, long float64
+			if err != nil {
+				fmt.Println(err)
+				lat = 0.0
+				long = 0.0
+			} else {
+				lat = information.Lat
+				long = information.Lon
+			}
+			sessionResult = append(sessionResult, SessionsMetrics{
+				Username:           session.UserName,
+				Client:             session.Client,
+				IsPaused:           session.PlayState.IsPaused,
+				RemoteEndPoint:     session.RemoteEndPoint,
+				Latitude:           lat,
+				Longitude:          long,
+				NowPlayingItemName: session.NowPlayingItem.Name,
+				NowPlayingItemType: session.NowPlayingItem.Type,
+			})
 		}
 	}
 
