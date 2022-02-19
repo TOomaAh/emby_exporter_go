@@ -69,14 +69,74 @@ type UserView struct {
 }
 
 type LibraryInfo struct {
-	Name      string `json:"Name"`
-	ServerID  string `json:"ServerId"`
-	ID        string `json:"Id"`
-	IsFolder  bool   `json:"IsFolder"`
-	Type      string `json:"Type"`
-	ImageTags struct {
-	} `json:"ImageTags"`
-	BackdropImageTags []interface{} `json:"BackdropImageTags"`
+	LibraryItem      []LibraryItem `json:"Items"`
+	TotalRecordCount int           `json:"TotalRecordCount"`
+}
+
+type LibraryItem struct {
+	Name           string        `json:"Name"`
+	Locations      []interface{} `json:"Locations"`
+	CollectionType string        `json:"CollectionType"`
+	LibraryOptions struct {
+		EnableArchiveMediaFiles                 bool          `json:"EnableArchiveMediaFiles"`
+		EnablePhotos                            bool          `json:"EnablePhotos"`
+		EnableRealtimeMonitor                   bool          `json:"EnableRealtimeMonitor"`
+		EnableChapterImageExtraction            bool          `json:"EnableChapterImageExtraction"`
+		ExtractChapterImagesDuringLibraryScan   bool          `json:"ExtractChapterImagesDuringLibraryScan"`
+		DownloadImagesInAdvance                 bool          `json:"DownloadImagesInAdvance"`
+		PathInfos                               []interface{} `json:"PathInfos"`
+		IgnoreHiddenFiles                       bool          `json:"IgnoreHiddenFiles"`
+		IgnoreFileExtensions                    []interface{} `json:"IgnoreFileExtensions"`
+		SaveLocalMetadata                       bool          `json:"SaveLocalMetadata"`
+		SaveMetadataHidden                      bool          `json:"SaveMetadataHidden"`
+		SaveLocalThumbnailSets                  bool          `json:"SaveLocalThumbnailSets"`
+		ImportMissingEpisodes                   bool          `json:"ImportMissingEpisodes"`
+		EnableAutomaticSeriesGrouping           bool          `json:"EnableAutomaticSeriesGrouping"`
+		EnableEmbeddedTitles                    bool          `json:"EnableEmbeddedTitles"`
+		EnableAudioResume                       bool          `json:"EnableAudioResume"`
+		AutomaticRefreshIntervalDays            int           `json:"AutomaticRefreshIntervalDays"`
+		PreferredMetadataLanguage               string        `json:"PreferredMetadataLanguage"`
+		PreferredImageLanguage                  string        `json:"PreferredImageLanguage"`
+		ContentType                             string        `json:"ContentType"`
+		MetadataCountryCode                     string        `json:"MetadataCountryCode"`
+		SeasonZeroDisplayName                   string        `json:"SeasonZeroDisplayName"`
+		Name                                    string        `json:"Name"`
+		MetadataSavers                          []string      `json:"MetadataSavers"`
+		DisabledLocalMetadataReaders            []interface{} `json:"DisabledLocalMetadataReaders"`
+		LocalMetadataReaderOrder                []string      `json:"LocalMetadataReaderOrder"`
+		DisabledSubtitleFetchers                []interface{} `json:"DisabledSubtitleFetchers"`
+		SubtitleFetcherOrder                    []interface{} `json:"SubtitleFetcherOrder"`
+		SkipSubtitlesIfEmbeddedSubtitlesPresent bool          `json:"SkipSubtitlesIfEmbeddedSubtitlesPresent"`
+		SkipSubtitlesIfAudioTrackMatches        bool          `json:"SkipSubtitlesIfAudioTrackMatches"`
+		SubtitleDownloadLanguages               []interface{} `json:"SubtitleDownloadLanguages"`
+		RequirePerfectSubtitleMatch             bool          `json:"RequirePerfectSubtitleMatch"`
+		SaveSubtitlesWithMedia                  bool          `json:"SaveSubtitlesWithMedia"`
+		ForcedSubtitlesOnly                     bool          `json:"ForcedSubtitlesOnly"`
+		TypeOptions                             []struct {
+			Type                 string   `json:"Type"`
+			MetadataFetchers     []string `json:"MetadataFetchers"`
+			MetadataFetcherOrder []string `json:"MetadataFetcherOrder"`
+			ImageFetchers        []string `json:"ImageFetchers"`
+			ImageFetcherOrder    []string `json:"ImageFetcherOrder"`
+			ImageOptions         []struct {
+				Type     string `json:"Type"`
+				Limit    int    `json:"Limit"`
+				MinWidth int    `json:"MinWidth"`
+			} `json:"ImageOptions"`
+		} `json:"TypeOptions"`
+		CollapseSingleItemFolders      bool `json:"CollapseSingleItemFolders"`
+		EnableAdultMetadata            bool `json:"EnableAdultMetadata"`
+		ImportCollections              bool `json:"ImportCollections"`
+		MinCollectionItems             int  `json:"MinCollectionItems"`
+		MinResumePct                   int  `json:"MinResumePct"`
+		MaxResumePct                   int  `json:"MaxResumePct"`
+		MinResumeDurationSeconds       int  `json:"MinResumeDurationSeconds"`
+		ThumbnailImagesIntervalSeconds int  `json:"ThumbnailImagesIntervalSeconds"`
+		SampleIgnoreSize               int  `json:"SampleIgnoreSize"`
+	} `json:"LibraryOptions"`
+	ItemID             string `json:"ItemId"`
+	PrimaryImageItemID string `json:"PrimaryImageItemId"`
+	RefreshStatus      string `json:"RefreshStatus"`
 }
 
 type Library struct {

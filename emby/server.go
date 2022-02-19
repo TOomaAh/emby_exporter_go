@@ -43,13 +43,12 @@ func (s *Server) GetServerInfo() (*SystemInfo, error) {
 	return &systemInfo, nil
 }
 
-func (s *Server) GetLibrary() (*[]LibraryInfo, error) {
-	resp, err := s.request("GET", "/Items", "")
+func (s *Server) GetLibrary() (*LibraryInfo, error) {
+	resp, err := s.request("GET", "/Library/VirtualFolders/Query", "")
 	if err != nil {
 		return nil, err
 	}
-
-	var library []LibraryInfo
+	var library LibraryInfo
 	err = json.Unmarshal(resp, &library)
 	if err != nil {
 		return nil, err
@@ -90,13 +89,13 @@ func (s *Server) GetSessionsSize() (int, error) {
 	return len(*sessions), nil
 }
 
-func (s *Server) GetLibrarySize(libraryInfo *LibraryInfo) (int, error) {
+func (s *Server) GetLibrarySize(libraryItem *LibraryItem) (int, error) {
 	var librarySize int
 	resp, err := s.request("GET", fmt.Sprintf(
 		//Ok I need minimum information. Only one Item and api returns the total number of items
 		"/Users/%s/Items?IncludeItemTypes=Movie&Recursive=true&Fields=BasicSyncInfo&EnableImageTypes=Primary&ParentId=%s&Limit=1",
 		s.UserID,
-		libraryInfo.ID), "")
+		libraryItem.ItemID), "")
 
 	if err != nil {
 		return 0, err
@@ -114,7 +113,7 @@ func (s *Server) GetLibrarySize(libraryInfo *LibraryInfo) (int, error) {
 }
 
 func (s *Server) request(method string, path string, body string) ([]byte, error) {
-	req, _ := http.NewRequest(method, fmt.Sprintf("%s%s", s.Url, path), strings.NewReader(body))
+	req, _ := http.NewRequest(method, fmt.Sprintf("%s:%d%s", s.Url, s.Port, path), strings.NewReader(body))
 	req.Header.Set("X-Emby-Token", s.Token)
 	req.Header.Set("Application-Type", "application/json")
 
