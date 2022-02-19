@@ -12,7 +12,8 @@ go build .`
 ## To build the docker image: 
 
 `docker build -t emby_exporter .`
-```docker run \
+```
+docker run \
    --name=emby_exporter \
    -p 9210:9210 \ #OPTIONAL
    -v PORT=9210 \
@@ -20,6 +21,7 @@ go build .`
    -v EMBYPORT=8096 \
    -v USERID=youruserid \
    -v TOKEN=yourembytoken \
-   emby_exporter```
+   emby_exporter
+```
 
 This project will end up in a docker to facilitate its use.
