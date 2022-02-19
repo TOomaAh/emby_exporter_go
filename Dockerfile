@@ -11,4 +11,4 @@ RUN go build -o emby_exporter
 
 EXPOSE 9210
 
-ENTRYPOINT [ "./emby_exporter" ]
+ENTRYPOINT [ "entrypoint.sh" ]
