@@ -15,9 +15,10 @@ go build .`
 ```
 docker run -d -it \
    --name=emby_exporter \
-   -p 9210:9210 \ #OPTIONAL
-   -e PORT=9210 \
-   -e EMBYURL=http://localhost \
+   -p 9210:9210 \
+   -e PORT=9210 \ #OPTIONAL
+   -e SCHEME=http \
+   -e EMBYURL=localhost \
    -e EMBYPORT=8096 \
    -e USERID=youruserid \
    -e TOKEN=yourembytoken \
