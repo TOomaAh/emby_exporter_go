@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"TOomaAh/emby_exporter_go/emby"
-	"fmt"
 	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -27,7 +26,6 @@ func NewEmbyCollector(e *emby.EmbyClient) *EmbyCollector {
 }
 
 func (c *EmbyCollector) Describe(ch chan<- *prometheus.Desc) {
-	fmt.Println("Describe")
 	ch <- c.serverInfo
 	ch <- c.library
 	ch <- c.sessions
