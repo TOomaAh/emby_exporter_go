@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-type GeoToIP struct {
+type IPToGEO struct {
 	IP string
 }
 
@@ -29,13 +29,13 @@ type GeoIPInformation struct {
 	As          string  `json:"as"`
 }
 
-func New(ip string) *GeoToIP {
-	return &GeoToIP{
+func New(ip string) *IPToGEO {
+	return &IPToGEO{
 		IP: ip,
 	}
 }
 
-func (g *GeoToIP) GetInfo() (*GeoIPInformation, error) {
+func (g *IPToGEO) GetInfo() (*GeoIPInformation, error) {
 	url := "http://ip-api.com/json/%s"
 
 	resp, err := http.Get(fmt.Sprintf(url, g.IP))
