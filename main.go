@@ -36,8 +36,10 @@ func main() {
 	embyServer := emby.NewServer(Options.Emby, Options.Token, Options.UserID, Options.EmbyPort)
 	client := emby.NewEmbyClient(embyServer)
 	embyCollector := metrics.NewEmbyCollector(client)
-	prometheus.MustRegister(embyCollector)
-	http.Handle("/metrics", promhttp.Handler())
+	newRegistry := prometheus.NewRegistry()
+	newRegistry.MustRegister(embyCollector)
+	handler := promhttp.HandlerFor(newRegistry, promhttp.HandlerOpts{})
+	http.Handle("/metrics", handler)
 	logger.Printf("Beginning to serve on port %d", Options.Port)
 	http.ListenAndServe(fmt.Sprintf(":%d", Options.Port), nil)
 

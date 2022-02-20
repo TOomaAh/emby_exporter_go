@@ -1,6 +1,7 @@
 package emby
 
 import (
+	"TOomaAh/emby_exporter_go/geoip"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -8,6 +9,13 @@ import (
 	"net/http"
 	"strings"
 )
+
+var includeType = map[string]string{
+	"movies":  "Movie",
+	"tvshows": "Series",
+	"boxsets": "BoxSet",
+	"music":   "MusicArtist",
+}
 
 type Server struct {
 	Url    string
@@ -57,7 +65,7 @@ func (s *Server) GetLibrary() (*LibraryInfo, error) {
 	return &library, nil
 }
 
-func (s *Server) GetSessions() (*[]Sessions, error) {
+func (s *Server) GetSessions() (*[]SessionsMetrics, error) {
 	resp, err := s.request("GET", "/Sessions", "")
 	if err != nil {
 		return nil, err
@@ -68,12 +76,28 @@ func (s *Server) GetSessions() (*[]Sessions, error) {
 	if err != nil {
 		return nil, err
 	}
-	var sessionResult []Sessions
+	var sessionResult []SessionsMetrics
 
 	//To retrieve only the playback sessions and not the connected devices
-	for i, session := range sessions {
+	for _, session := range sessions {
 		if session.PlayState.PlayMethod != "" {
-			sessionResult = append(sessionResult, sessions[i])
+			ip := geoip.New(session.RemoteEndPoint)
+			information, err := ip.GetInfo()
+			var lat, long float64 = 0.0, 0.0
+			if err == nil {
+				lat = information.Lat
+				long = information.Lon
+			}
+			sessionResult = append(sessionResult, SessionsMetrics{
+				Username:           session.UserName,
+				Client:             session.Client,
+				IsPaused:           session.PlayState.IsPaused,
+				RemoteEndPoint:     session.RemoteEndPoint,
+				Latitude:           lat,
+				Longitude:          long,
+				NowPlayingItemName: session.NowPlayingItem.Name,
+				NowPlayingItemType: session.NowPlayingItem.Type,
+			})
 		}
 	}
 
@@ -93,9 +117,10 @@ func (s *Server) GetLibrarySize(libraryItem *LibraryItem) (int, error) {
 	var librarySize int
 	resp, err := s.request("GET", fmt.Sprintf(
 		//Ok I need minimum information. Only one Item and api returns the total number of items
-		"/Users/%s/Items?IncludeItemTypes=Movie&Recursive=true&Fields=BasicSyncInfo&EnableImageTypes=Primary&ParentId=%s&Limit=1",
+		"/Users/%s/Items?IncludeItemTypes=Movie&Recursive=true&Fields=BasicSyncInfo&EnableImageTypes=Primary&ParentId=%s&Limit=1&IncludeItemTypes=%s",
 		s.UserID,
-		libraryItem.ItemID), "")
+		libraryItem.ItemID,
+		includeType[libraryItem.LibraryOptions.ContentType]), "")
 
 	if err != nil {
 		return 0, err
