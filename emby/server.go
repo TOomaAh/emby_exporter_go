@@ -82,10 +82,11 @@ func (s *Server) GetSessions() (*[]SessionsMetrics, error) {
 	for _, session := range sessions {
 		if session.PlayState.PlayMethod != "" {
 			ip := geoip.New(session.RemoteEndPoint)
-			information, err := ip.GetInfo()
+
 			var lat, long float64 = 0.0, 0.0
 			var city, region, countryCode string
 			if err == nil {
+				information, _ := ip.GetInfo()
 				city = information.City
 				region = information.RegionName
 				countryCode = information.CountryCode
