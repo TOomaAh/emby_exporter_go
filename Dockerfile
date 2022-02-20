@@ -1,11 +1,5 @@
 FROM golang:1.16-alpine
 
-ENV TOKEN=""
-ENV SCHEME="http"
-ENV USERID=""
-ENV EMBYPORT=8096
-ENV EMBYHOST="localhost"
-
 WORKDIR /app
 
 COPY . .
