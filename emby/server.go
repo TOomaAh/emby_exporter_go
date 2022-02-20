@@ -13,6 +13,7 @@ import (
 var includeType = map[string]string{
 	"movies":  "Movie",
 	"tvshows": "Series",
+	"boxsets": "BoxSet",
 }
 
 type Server struct {
