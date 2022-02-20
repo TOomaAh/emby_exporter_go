@@ -14,6 +14,7 @@ var includeType = map[string]string{
 	"movies":  "Movie",
 	"tvshows": "Series",
 	"boxsets": "BoxSet",
+	"music":   "MusicArtist",
 }
 
 type Server struct {
