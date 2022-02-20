@@ -355,6 +355,9 @@ type SessionsMetrics struct {
 	RemoteEndPoint     string
 	Latitude           float64
 	Longitude          float64
+	Region             string
+	City               string
+	CountryCode        string
 	NowPlayingItemName string
 	NowPlayingItemType string
 }

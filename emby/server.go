@@ -84,7 +84,11 @@ func (s *Server) GetSessions() (*[]SessionsMetrics, error) {
 			ip := geoip.New(session.RemoteEndPoint)
 			information, err := ip.GetInfo()
 			var lat, long float64 = 0.0, 0.0
+			var city, region, countryCode string
 			if err == nil {
+				city = information.City
+				region = information.RegionName
+				countryCode = information.CountryCode
 				lat = information.Lat
 				long = information.Lon
 			}
@@ -95,6 +99,9 @@ func (s *Server) GetSessions() (*[]SessionsMetrics, error) {
 				RemoteEndPoint:     session.RemoteEndPoint,
 				Latitude:           lat,
 				Longitude:          long,
+				City:               city,
+				Region:             region,
+				CountryCode:        countryCode,
 				NowPlayingItemName: session.NowPlayingItem.Name,
 				NowPlayingItemType: session.NowPlayingItem.Type,
 			})
