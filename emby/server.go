@@ -10,6 +10,11 @@ import (
 	"strings"
 )
 
+var includeType = map[string]string{
+	"movies":  "Movie",
+	"tvshows": "Series",
+}
+
 type Server struct {
 	Url    string
 	Token  string
@@ -110,9 +115,10 @@ func (s *Server) GetLibrarySize(libraryItem *LibraryItem) (int, error) {
 	var librarySize int
 	resp, err := s.request("GET", fmt.Sprintf(
 		//Ok I need minimum information. Only one Item and api returns the total number of items
-		"/Users/%s/Items?IncludeItemTypes=Movie&Recursive=true&Fields=BasicSyncInfo&EnableImageTypes=Primary&ParentId=%s&Limit=1",
+		"/Users/%s/Items?IncludeItemTypes=Movie&Recursive=true&Fields=BasicSyncInfo&EnableImageTypes=Primary&ParentId=%s&Limit=1&IncludeItemTypes=%s",
 		s.UserID,
-		libraryItem.ItemID), "")
+		libraryItem.ItemID,
+		includeType[libraryItem.LibraryOptions.ContentType]), "")
 
 	if err != nil {
 		return 0, err
