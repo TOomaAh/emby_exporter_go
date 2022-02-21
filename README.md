@@ -25,4 +25,9 @@ docker run -d -it \
    bagul/goemby_exporter:latest
 ```
 
+## Grafana Dashboard
+(I will share my dashboard later)
+
+![Dashboard example](https://github.com/TOomaAh/emby_exporter_go/blob/main/example/dashboard_grafana.png)
+
 This project will end up in a docker to facilitate its use.
