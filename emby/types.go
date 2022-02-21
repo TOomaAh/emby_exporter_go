@@ -237,6 +237,8 @@ type Sessions struct {
 		CommunityRating float64       `json:"CommunityRating"`
 		RunTimeTicks    int64         `json:"RunTimeTicks"`
 		ProductionYear  int           `json:"ProductionYear"`
+		SeriesName      string        `json:"SeriesName`
+		SeasonName      string        `json:"SeasonName"`
 		ProviderIds     struct {
 			Tmdb string `json:"Tmdb"`
 			Imdb string `json:"Imdb"`
@@ -379,6 +381,12 @@ type SessionsMetrics struct {
 	CountryCode        string
 	NowPlayingItemName string
 	NowPlayingItemType string
+	PlaybackPosition   int64
+	MediaDuration      int64
+	PlaybackPercent    int64
+	TVShow             string
+	Season             string
+	PlayMethod         string
 }
 type LibraryMetrics struct {
 	Name string

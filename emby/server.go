@@ -15,6 +15,7 @@ var includeType = map[string]string{
 	"tvshows": "Series",
 	"boxsets": "BoxSet",
 	"music":   "MusicArtist",
+	"Episode": "TV Show",
 }
 
 type Server struct {
@@ -82,9 +83,19 @@ func (s *Server) GetSessions() (*[]SessionsMetrics, error) {
 	for _, session := range sessions {
 		if session.PlayState.PlayMethod != "" {
 			ip := geoip.New(session.RemoteEndPoint)
-
+			var playbackPercent int64
 			var lat, long float64 = 0.0, 0.0
-			var city, region, countryCode string
+			var city, region, countryCode, tvShow, season string
+
+			var positionTicksSeconds float64 = (float64(session.PlayState.PositionTicks) / 10000000) / 60
+			var totalTime float64 = (float64(session.NowPlayingItem.RunTimeTicks) / 10000000) / 60
+			playbackPercent = (int64((positionTicksSeconds * 100) / totalTime))
+
+			if session.NowPlayingItem.Type == "Episode" {
+				tvShow = session.NowPlayingItem.SeriesName
+				season = session.NowPlayingItem.SeasonName
+			}
+
 			if err == nil {
 				information, _ := ip.GetInfo()
 				city = information.City
@@ -105,6 +116,12 @@ func (s *Server) GetSessions() (*[]SessionsMetrics, error) {
 				CountryCode:        countryCode,
 				NowPlayingItemName: session.NowPlayingItem.Name,
 				NowPlayingItemType: session.NowPlayingItem.Type,
+				MediaDuration:      session.NowPlayingItem.RunTimeTicks,
+				PlaybackPosition:   session.PlayState.PositionTicks,
+				PlaybackPercent:    playbackPercent,
+				TVShow:             tvShow,
+				Season:             season,
+				PlayMethod:         session.PlayState.PlayMethod,
 			})
 		}
 	}
