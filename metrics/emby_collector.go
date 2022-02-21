@@ -13,6 +13,7 @@ type EmbyCollector struct {
 	library    *prometheus.Desc
 	sessions   *prometheus.Desc
 	count      *prometheus.Desc
+	alert      *prometheus.Desc
 }
 
 func NewEmbyCollector(e *emby.EmbyClient) *EmbyCollector {
@@ -21,7 +22,8 @@ func NewEmbyCollector(e *emby.EmbyClient) *EmbyCollector {
 		serverInfo: prometheus.NewDesc("emby_system_info", "All Emby Info", []string{"version", "wanAdress", "localAdress", "hasUpdateAvailable", "hasPendingRestart"}, nil),
 		library:    prometheus.NewDesc("emby_media_item", "All Media Item", []string{"name", "size"}, nil),
 		sessions:   prometheus.NewDesc("emby_sessions", "All session", []string{"username", "client", "isPaused", "remoteEndPoint", "latitude", "longitude", "city", "region", "countryCode", "nowPlayingItemName", "nowPlayingItemType"}, nil),
-		count:      prometheus.NewDesc("emby_sessions_count", "Session Count", []string{"count"}, nil),
+		count:      prometheus.NewDesc("emby_sessions_count", "Session Count", []string{}, nil),
+		alert:      prometheus.NewDesc("emby_alert", "Alert log", []string{"name", "type", "severity", "date"}, nil),
 	}
 }
 
@@ -30,6 +32,7 @@ func (c *EmbyCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.library
 	ch <- c.sessions
 	ch <- c.count
+	ch <- c.alert
 }
 
 func (c *EmbyCollector) Collect(ch chan<- prometheus.Metric) {
@@ -41,5 +44,8 @@ func (c *EmbyCollector) Collect(ch chan<- prometheus.Metric) {
 	for i, library := range embyMetrics.LibraryMetrics {
 		ch <- prometheus.MustNewConstMetric(c.library, prometheus.GaugeValue, float64(i), library.Name, strconv.FormatInt(int64(library.Size), 10))
 	}
-	ch <- prometheus.MustNewConstMetric(c.count, prometheus.GaugeValue, 1, strconv.FormatInt(int64(len(embyMetrics.Sessions)), 10))
+	ch <- prometheus.MustNewConstMetric(c.count, prometheus.GaugeValue, float64(len(embyMetrics.Sessions)))
+	for i, alert := range embyMetrics.Alert {
+		ch <- prometheus.MustNewConstMetric(c.alert, prometheus.GaugeValue, float64(i), alert.Name, alert.Type, alert.Severity, alert.Date.Format("02/01/2006 15:04:05"))
+	}
 }

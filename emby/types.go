@@ -34,6 +34,25 @@ type SystemInfo struct {
 	ID                                   string        `json:"Id"`
 }
 
+type Alert struct {
+	Items []struct {
+		ID       int       `json:"Id"`
+		Name     string    `json:"Name"`
+		Type     string    `json:"Type"`
+		Date     time.Time `json:"Date"`
+		UserID   string    `json:"UserId"`
+		Severity string    `json:"Severity"`
+	} `json:"Items"`
+	TotalRecordCount int `json:"TotalRecordCount"`
+}
+
+type AlertMetric struct {
+	Name     string
+	Type     string
+	Severity string
+	Date     time.Time
+}
+
 // UserView represents a single user-visible view
 type UserView struct {
 	Name                    string        `json:"Name"`
@@ -370,4 +389,5 @@ type ServerMetrics struct {
 	LibraryMetrics []LibraryMetrics
 	Sessions       []SessionsMetrics
 	SessionsCount  int
+	Alert          []AlertMetric
 }

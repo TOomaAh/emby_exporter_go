@@ -45,6 +45,19 @@ func (c *EmbyClient) GetMetrics() *ServerMetrics {
 	serverMetrics.Sessions = *sessions
 	serverMetrics.SessionsCount = len(*sessions)
 
+	alert, err := c.Server.GetAlert()
+
+	if err == nil {
+		for _, a := range alert.Items {
+			serverMetrics.Alert = append(serverMetrics.Alert, AlertMetric{
+				Name:     a.Name,
+				Type:     a.Type,
+				Severity: a.Severity,
+				Date:     a.Date,
+			})
+		}
+	}
+
 	return &serverMetrics
 
 }
