@@ -34,7 +34,7 @@ type SystemInfo struct {
 	ID                                   string        `json:"Id"`
 }
 
-type Alert struct {
+type Activity struct {
 	Items []struct {
 		ID       int       `json:"Id"`
 		Name     string    `json:"Name"`
@@ -46,7 +46,7 @@ type Alert struct {
 	TotalRecordCount int `json:"TotalRecordCount"`
 }
 
-type AlertMetric struct {
+type ActivityMetric struct {
 	Name     string
 	Type     string
 	Severity string
@@ -397,5 +397,5 @@ type ServerMetrics struct {
 	LibraryMetrics []LibraryMetrics
 	Sessions       []SessionsMetrics
 	SessionsCount  int
-	Alert          []AlertMetric
+	Activity       []ActivityMetric
 }

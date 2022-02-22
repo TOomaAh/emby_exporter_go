@@ -49,7 +49,7 @@ func (c *EmbyClient) GetMetrics() *ServerMetrics {
 
 	if err == nil {
 		for _, a := range alert.Items {
-			serverMetrics.Alert = append(serverMetrics.Alert, AlertMetric{
+			serverMetrics.Activity = append(serverMetrics.Activity, ActivityMetric{
 				Name:     a.Name,
 				Type:     a.Type,
 				Severity: a.Severity,

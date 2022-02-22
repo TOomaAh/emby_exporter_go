@@ -129,20 +129,20 @@ func (s *Server) GetSessions() (*[]SessionsMetrics, error) {
 	return &sessionResult, nil
 }
 
-func (s *Server) GetAlert() (*Alert, error) {
+func (s *Server) GetAlert() (*Activity, error) {
 	resp, err := s.request("GET", "/System/ActivityLog/Entries?StartIndex=0&Limit=7", "")
 	if err != nil {
 		return nil, err
 	}
 
-	var alert Alert
-	err = json.Unmarshal(resp, &alert)
+	var activity Activity
+	err = json.Unmarshal(resp, &activity)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &alert, nil
+	return &activity, nil
 }
 
 func (s *Server) GetSessionsSize() (int, error) {
