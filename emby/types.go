@@ -53,6 +53,29 @@ type ActivityMetric struct {
 	Date     time.Time
 }
 
+type Alert struct {
+	Items []struct {
+		ID            int       `json:"Id"`
+		Name          string    `json:"Name"`
+		Overview      string    `json:"Overview,omitempty"`
+		ShortOverview string    `json:"ShortOverview"`
+		Type          string    `json:"Type"`
+		Date          time.Time `json:"Date"`
+		Severity      string    `json:"Severity"`
+	} `json:"Items"`
+	TotalRecordCount int `json:"TotalRecordCount"`
+}
+
+type AlertMetrics struct {
+	ID            int
+	Name          string
+	Overview      string
+	ShortOverview string
+	Type          string
+	Date          time.Time
+	Severity      string
+}
+
 // UserView represents a single user-visible view
 type UserView struct {
 	Name                    string        `json:"Name"`
@@ -398,4 +421,5 @@ type ServerMetrics struct {
 	Sessions       []SessionsMetrics
 	SessionsCount  int
 	Activity       []ActivityMetric
+	Alert          []AlertMetrics
 }

@@ -45,15 +45,31 @@ func (c *EmbyClient) GetMetrics() *ServerMetrics {
 	serverMetrics.Sessions = *sessions
 	serverMetrics.SessionsCount = len(*sessions)
 
-	alert, err := c.Server.GetAlert()
+	activity, err := c.Server.GetActivity()
 
 	if err == nil {
-		for _, a := range alert.Items {
+		for _, a := range activity.Items {
 			serverMetrics.Activity = append(serverMetrics.Activity, ActivityMetric{
 				Name:     a.Name,
 				Type:     a.Type,
 				Severity: a.Severity,
 				Date:     a.Date,
+			})
+		}
+	}
+
+	alert, err := c.Server.GetAlert()
+
+	if err == nil {
+		for _, a := range alert.Items {
+			serverMetrics.Alert = append(serverMetrics.Alert, AlertMetrics{
+				ID:            a.ID,
+				Name:          a.Name,
+				Overview:      a.Overview,
+				ShortOverview: a.ShortOverview,
+				Type:          a.Type,
+				Date:          a.Date,
+				Severity:      a.Severity,
 			})
 		}
 	}
