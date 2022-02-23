@@ -1,13 +1,20 @@
 FROM golang:1.16-alpine
+WORKDIR /app
+COPY . .
+RUN go mod download
+RUN go build -o emby_exporter
+
+
+
+FROM alpine:latest
 
 WORKDIR /app
 
-COPY . .
+COPY --from=0 /app/emby_exporter /app/emby_exporter
+COPY --from=0 /app/entrypoint.sh /app/entrypoint.sh
 
-RUN go mod download
-
-RUN go build -o emby_exporter
 RUN chmod +x entrypoint.sh
+RUN mkdir /config && touch /config/config.yml
 
 EXPOSE 9210
 
