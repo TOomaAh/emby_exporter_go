@@ -4,6 +4,7 @@ import (
 	"TOomaAh/emby_exporter_go/conf"
 	"TOomaAh/emby_exporter_go/emby"
 	"TOomaAh/emby_exporter_go/metrics"
+	"TOomaAh/emby_exporter_go/series"
 	"fmt"
 	"log"
 	"net/http"
@@ -40,8 +41,17 @@ func main() {
 
 	embyServer := emby.NewServer(config.Server.Hostname, config.Server.Token, config.Server.UserID, config.Server.Port)
 	client := emby.NewEmbyClient(embyServer)
+
+	seriesInt := series.NewSeriesFromConf(config)
+
 	embyCollector := metrics.NewEmbyCollector(client)
 	newRegistry := prometheus.NewRegistry()
+
+	if seriesInt != nil {
+		serieCollector := series.NewSeriesCollector(seriesInt)
+		newRegistry.MustRegister(serieCollector)
+	}
+
 	newRegistry.MustRegister(embyCollector)
 	handler := promhttp.HandlerFor(newRegistry, promhttp.HandlerOpts{})
 	http.Handle("/metrics", handler)
