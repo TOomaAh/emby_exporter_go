@@ -15,13 +15,8 @@ go build .`
 ```
 docker run -d -it \
    --name=emby_exporter \
-   -p 9210:9210 \
-   -e PORT=9210 \ #OPTIONAL
-   -e SCHEME=http \
-   -e EMBYURL=localhost \
-   -e EMBYPORT=8096 \
-   -e USERID=youruserid \
-   -e TOKEN=yourembytoken \
+   -e CONFIG_FILE=NAME_OF_YOUR_FILE.yml \
+   -v '/path/to/your/config/file.yml:/config/file.yml' \
    bagul/goemby_exporter:latest
 ```
 
