@@ -20,6 +20,15 @@ docker run -d -it \
    bagul/goemby_exporter:latest
 ```
 
+### Config file example
+```yaml
+server:
+  url: "http://<ip|domain name>"
+  port: 8096
+  token: "your token"
+  userID: "your userID"
+```
+
 ## Grafana Dashboard
 (I will share my dashboard later)
 
