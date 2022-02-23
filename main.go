@@ -1,6 +1,7 @@
 package main
 
 import (
+	"TOomaAh/emby_exporter_go/conf"
 	"TOomaAh/emby_exporter_go/emby"
 	"TOomaAh/emby_exporter_go/metrics"
 	"fmt"
@@ -13,34 +14,38 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-type Coordinate struct {
-	latitude  string
-	longitude string
-}
-
 var Options struct {
-	Emby     string `short:"e" long:"emby" description:"emby url without port (don't forget scheme)" required:"true"`
-	EmbyPort int    `short:"p" long:"embyport" description:"emby port" default:"8096" required:"true"`
-	Token    string `short:"t" long:"token" required:"true"`
-	UserID   string `short:"u" long:"user-id" required:"true"`
-	Port     int    `short:"P" long:"port" default:"9210"`
+	ConfFile string `short:"c" long:"config" description:"Path of your configuration file" required:"false"`
 }
 
 func main() {
 	_, err := flags.ParseArgs(&Options, os.Args)
-	logger := log.Default()
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+	var configFile string
+	if Options.ConfFile == "" {
+		configFile = "./config.yml"
+	} else {
+		configFile = Options.ConfFile
+	}
+	config, err := conf.NewConfig(configFile)
+
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	embyServer := emby.NewServer(Options.Emby, Options.Token, Options.UserID, Options.EmbyPort)
+	logger := log.Default()
+
+	embyServer := emby.NewServer(config.Server.Hostname, config.Server.Token, config.Server.UserID, config.Server.Port)
 	client := emby.NewEmbyClient(embyServer)
 	embyCollector := metrics.NewEmbyCollector(client)
 	newRegistry := prometheus.NewRegistry()
 	newRegistry.MustRegister(embyCollector)
 	handler := promhttp.HandlerFor(newRegistry, promhttp.HandlerOpts{})
 	http.Handle("/metrics", handler)
-	logger.Printf("Beginning to serve on port %d", Options.Port)
-	http.ListenAndServe(fmt.Sprintf(":%d", Options.Port), nil)
+	logger.Printf("Beginning to serve on port %d", config.Exporter.Port|9210)
+	http.ListenAndServe(fmt.Sprintf(":%d", config.Exporter.Port|9210), nil)
 
 }
