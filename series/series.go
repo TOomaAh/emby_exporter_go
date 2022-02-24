@@ -21,7 +21,6 @@ type Indexer struct {
 type SeriesInterface interface {
 	GetTodayEpisodes() *[]Episode
 	GetHistory() *[]Episode
-	GetAllTVShow() *[]Series
 	makeRequest(method string, path string, body string) ([]byte, error)
 }
 
@@ -29,7 +28,7 @@ func NewSeriesFromConf(conf *conf.Config) SeriesInterface {
 	if conf.Series.Medusa.Url != "" {
 		return NewMedusa(conf.Series.Medusa.Url, conf.Series.Medusa.Token)
 	} else if conf.Series.Sonarr.Url != "" {
-		//return NewSonarr(conf.Series.Sonarr.Url, conf.Series.Sonarr.Token)
+		return NewSonarr(conf.Series.Sonarr.Url, conf.Series.Sonarr.Token)
 	}
 	return nil
 }
