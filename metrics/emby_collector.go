@@ -51,6 +51,9 @@ func (c *EmbyCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(c.activity, prometheus.GaugeValue, float64(i), activity.Name, activity.Type, activity.Severity, activity.Date.Format("02/01/2006 15:04:05"))
 	}
 	for i, alert := range embyMetrics.Alert {
-		ch <- prometheus.MustNewConstMetric(c.alert, prometheus.GaugeValue, float64(i), alert.Name, alert.Overview, alert.ShortOverview, alert.Type, alert.Date.Format("02/01/2006 15:04:05"), alert.Severity)
+		metrics, err := prometheus.NewConstMetric(c.alert, prometheus.GaugeValue, float64(i), alert.Name, alert.Overview, alert.ShortOverview, alert.Type, alert.Date.Format("02/01/2006 15:04:05"), alert.Severity)
+		if err == nil {
+			ch <- metrics
+		}
 	}
 }
