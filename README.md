@@ -27,6 +27,8 @@ server:
   port: 8096
   token: "your token"
   userID: "your userID"
+options: # optional
+  geoip: true # optional : default false
 ```
 
 ## Grafana Dashboard
