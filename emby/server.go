@@ -23,15 +23,17 @@ type Server struct {
 	Token  string
 	UserID string
 	Port   int
+	GeoIp  bool
 }
 
-func NewServer(url, token, userID string, port int) *Server {
+func NewServer(url, token, userID string, port int, geoip bool) *Server {
 
 	server := &Server{
 		Url:    url,
 		Token:  token,
 		UserID: userID,
 		Port:   port,
+		GeoIp:  geoip,
 	}
 
 	return server
@@ -82,9 +84,11 @@ func (s *Server) GetSessions() (*[]SessionsMetrics, error) {
 	//To retrieve only the playback sessions and not the connected devices
 	for _, session := range sessions {
 		if session.PlayState.PlayMethod != "" {
+
 			ip := geoip.New(session.RemoteEndPoint)
-			var playbackPercent int64
 			var lat, long float64 = 0.0, 0.0
+			var playbackPercent int64
+
 			var city, region, countryCode, tvShow, season string
 
 			var positionTicksSeconds float64 = (float64(session.PlayState.PositionTicks) / 10000000) / 60
@@ -97,12 +101,14 @@ func (s *Server) GetSessions() (*[]SessionsMetrics, error) {
 			}
 
 			if err == nil {
-				information, _ := ip.GetInfo()
-				city = information.City
-				region = information.RegionName
-				countryCode = information.CountryCode
-				lat = information.Lat
-				long = information.Lon
+				if s.GeoIp {
+					information, _ := ip.GetInfo()
+					city = information.City
+					region = information.RegionName
+					countryCode = information.CountryCode
+					lat = information.Lat
+					long = information.Lon
+				}
 			}
 			sessionResult = append(sessionResult, SessionsMetrics{
 				Username:           session.UserName,

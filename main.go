@@ -39,7 +39,7 @@ func main() {
 
 	logger := log.Default()
 
-	embyServer := emby.NewServer(config.Server.Hostname, config.Server.Token, config.Server.UserID, config.Server.Port)
+	embyServer := emby.NewServer(config.Server.Hostname, config.Server.Token, config.Server.UserID, config.Server.Port, config.Options.GeoIP)
 	client := emby.NewEmbyClient(embyServer)
 
 	seriesInt := series.NewSeriesFromConf(config)
