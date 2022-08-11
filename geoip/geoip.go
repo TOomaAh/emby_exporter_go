@@ -45,7 +45,8 @@ func (g *IPToGEO) GetInfo() (*GeoIPInformation, error) {
 	//We Read the response body on the line below.
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalln(err)
+		log.Println("GeoIP - GetInfo : " + err.Error())
+		return nil, err
 	}
 
 	defer resp.Body.Close()
@@ -54,6 +55,7 @@ func (g *IPToGEO) GetInfo() (*GeoIPInformation, error) {
 	geoInformation := &GeoIPInformation{}
 	err = json.Unmarshal(body, geoInformation)
 	if err != nil {
+		log.Println("GeoIP - GetInfo : " + err.Error())
 		return nil, err
 	}
 	return geoInformation, nil
