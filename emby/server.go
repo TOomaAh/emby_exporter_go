@@ -154,7 +154,11 @@ func (s *Server) GetAlert() (*Alert, error) {
 	err = json.Unmarshal(resp, &alert)
 
 	if err != nil {
-		log.Println("Emby Server - GetAlert : " + err.Error())
+		log.Println("Emby Server - GetAlert Unmarshal : " + err.Error())
+		if e, ok := err.(*json.SyntaxError); ok {
+			log.Printf("Emby Server - GetAlert Unmarshal : syntax error at byte offset %d", e.Offset)
+		}
+		log.Printf("Emby Server - GetAlert Unmarshal : response body => %q", resp)
 		return nil, err
 	}
 
@@ -173,6 +177,10 @@ func (s *Server) GetActivity() (*Activity, error) {
 
 	if err != nil {
 		log.Println("Emby Server - GetActivity : " + err.Error())
+		if e, ok := err.(*json.SyntaxError); ok {
+			log.Printf("Emby Server - GetActivity Unmarshal : syntax error at byte offset %d", e.Offset)
+		}
+		log.Printf("Emby Server - GetActivity Unmarshal : response body => %q", resp)
 		return nil, err
 	}
 
@@ -199,7 +207,7 @@ func (s *Server) GetLibrarySize(libraryItem *LibraryItem) (int, error) {
 		includeType[libraryItem.LibraryOptions.ContentType]), "")
 
 	if err != nil {
-		log.Println("Emby Server - GetLibrarySize : " + err.Error())
+		log.Printf("Emby Server - GetLibrarySize : %v", err.Error())
 		return 0, err
 	}
 
@@ -207,7 +215,11 @@ func (s *Server) GetLibrarySize(libraryItem *LibraryItem) (int, error) {
 	err = json.Unmarshal(resp, &library)
 
 	if err != nil {
-		log.Println("Emby Server - GetLibrarySize : " + err.Error())
+		log.Println("Emby Server - GetLibrarySize Unmarshal : " + err.Error())
+		if e, ok := err.(*json.SyntaxError); ok {
+			log.Printf("Emby Server - GetLibrarySize Unmarshal : syntax error at byte offset %d", e.Offset)
+		}
+		log.Printf("Emby Server - GetLibrarySize Unmarshal : response body => %q", resp)
 		return 0, err
 	}
 	librarySize = library.TotalRecordCount
