@@ -31,6 +31,13 @@ options: # optional
   geoip: true # optional : default false
 ```
 
+### How to get your userID
+
+1. Login to your emby server
+2. Go to the settings page
+3. Go to the profile page
+4. In the url, you will find your userID (ex: http://localhost:8096/web/index.html#!/settings/profile.html?userId=<YOUR_USER_ID>&serverId=xxxxx)
+
 ## Grafana Dashboard
 (I will share my dashboard later)
 
