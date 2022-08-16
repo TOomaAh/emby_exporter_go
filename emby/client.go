@@ -1,6 +1,8 @@
 package emby
 
-import "log"
+import (
+	"log"
+)
 
 type EmbyClient struct {
 	Server *Server
