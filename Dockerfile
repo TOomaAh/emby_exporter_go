@@ -3,7 +3,7 @@ WORKDIR /app
 COPY . .
 RUN go mod download
 RUN go build -o emby_exporter
-
+RUN apk update && apk add dos2unix && dos2unix entrypoint.sh
 
 
 FROM alpine:latest
