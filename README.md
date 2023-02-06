@@ -9,9 +9,12 @@ Normally the project works. I invite you to try it, I have to refine it a bit to
 go build .`
 
 
-## To build the docker image:
+## To build the docker image (it's already build but just if you want):
 
 `docker build -t emby_exporter .`
+
+### RUN Docker container
+
 ```
 docker run -d -it \
    --name=emby_exporter \
