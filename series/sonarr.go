@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -29,12 +30,14 @@ func (s Sonarr) GetTodayEpisodes() *[]Episode {
 	resp, err := s.makeRequest("GET", fmt.Sprintf("/api/calendar?start=%s", today), "")
 
 	if err != nil {
+		log.Println("Sonarr - GetTodayEpisodes" + err.Error())
 		return nil
 	}
 
 	var sonarrSchedule []SonarrSchedule
 	err = json.Unmarshal(resp, &sonarrSchedule)
 	if err != nil {
+		log.Println("Sonarr - GetTodayEpisodes" + err.Error())
 		return nil
 	}
 	var episodes []Episode
@@ -69,14 +72,14 @@ func (s Sonarr) getEpisodeTitle(episodeID int) SonarrEpisode {
 	resp, err := s.makeRequest("GET", fmt.Sprintf("/api/v3/episode?episodeIds=%d", episodeID), "")
 
 	if err != nil {
-		fmt.Println(err)
+		log.Println("Sonarr - getEpisodeTitle" + err.Error())
 		return defaultSonarrEpisode
 	}
 
 	var sonarrEpisode []SonarrEpisode
 	err = json.Unmarshal(resp, &sonarrEpisode)
 	if err != nil {
-		fmt.Println(err)
+		log.Println("Sonarr - getEpisodeTitle" + err.Error())
 		return defaultSonarrEpisode
 	}
 
@@ -141,6 +144,7 @@ func (s Sonarr) makeRequest(method string, path string, body string) ([]byte, er
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		log.Println("Sonarr - makeRequest" + err.Error())
 		return nil, err
 	}
 	defer resp.Body.Close()

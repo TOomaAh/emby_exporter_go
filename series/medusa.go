@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -33,13 +34,14 @@ func formatSeriesOrEpisode(episode int) string {
 func (m Medusa) GetTodayEpisodes() *[]Episode {
 	resp, err := m.makeRequest("GET", "/api/v2/schedule?category[]=later&category[]=today&paused=true", "")
 	if err != nil {
-
+		log.Println("Medusa - GetTodayEpisodes : " + err.Error())
 		return nil
 	}
 
 	var medusaSchedule MedusaSchedule
 	err = json.Unmarshal(resp, &medusaSchedule)
 	if err != nil {
+		log.Println("Medusa - GetTodayEpisodes : " + err.Error())
 		return nil
 	}
 
@@ -58,13 +60,14 @@ func (m Medusa) GetTodayEpisodes() *[]Episode {
 func (m Medusa) GetHistory() *[]Episode {
 	resp, err := m.makeRequest("GET", "/api/v2/history?page=1&limit=25&sort[]={\"field\":\"date\",\"type\":\"desc\"}&filter={}", "")
 	if err != nil {
-
+		log.Println("Medusa - GetHistory : " + err.Error())
 		return nil
 	}
 
 	var medusaHistory []MedusaHistory
 	err = json.Unmarshal(resp, &medusaHistory)
 	if err != nil {
+		log.Println("Medusa - GetHistory : " + err.Error())
 		return nil
 	}
 
@@ -93,12 +96,14 @@ func (m Medusa) GetAllTVShow() *[]Series {
 	resp, err := m.makeRequest("GET", "/api/v2/series?sort=", "")
 
 	if err != nil {
+		log.Println("Medusa - GetAllTVShow : " + err.Error())
 		return nil
 	}
 
 	var medusaSeries []MedusaSeries
 	err = json.Unmarshal(resp, &medusaSeries)
 	if err != nil {
+		log.Println("Medusa - GetAllTVShow : " + err.Error())
 		return nil
 	}
 	var series []Series
@@ -126,6 +131,7 @@ func (m Medusa) makeRequest(method string, path string, body string) ([]byte, er
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		log.Println("Medusa - makeRequest : " + err.Error())
 		return nil, err
 	}
 	defer resp.Body.Close()

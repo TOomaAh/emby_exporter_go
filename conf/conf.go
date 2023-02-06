@@ -27,6 +27,9 @@ type Config struct {
 			Token string `yaml:"token"`
 		} `yaml:"medusa,omitempty"`
 	} `yaml:"series,omitempty"`
+	Options struct {
+		GeoIP bool `yaml:"geoip"`
+	} `yaml:"options,omitempty"`
 }
 
 func NewConfig(path string) (*Config, error) {

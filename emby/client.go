@@ -1,5 +1,9 @@
 package emby
 
+import (
+	"log"
+)
+
 type EmbyClient struct {
 	Server *Server
 }
@@ -38,6 +42,7 @@ func (c *EmbyClient) GetMetrics() *ServerMetrics {
 
 	sessions, err := c.Server.GetSessions()
 	if err != nil {
+		log.Println("Emby Client - GetMetrics : " + err.Error())
 		return nil
 	}
 	serverMetrics.Sessions = *sessions
