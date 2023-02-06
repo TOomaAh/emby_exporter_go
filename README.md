@@ -38,6 +38,11 @@ options: # optional
 3. Go to the profile page
 4. In the url, you will find your userID
     (ex: http://localhost:8096/web/index.html#!/settings/profile.html?userId=<YOUR_USER_ID>&serverId=xxxxx)
+    
+### Get metrics
+
+You can access the metrics on the following url:
+`http://ip:9210/metrics`
 
 ## Grafana Dashboard
 (I will share my dashboard later)
