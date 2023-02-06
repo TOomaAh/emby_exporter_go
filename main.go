@@ -40,11 +40,18 @@ func main() {
 	logger := log.Default()
 
 	embyServer := emby.NewServer(config.Server.Hostname, config.Server.Token, config.Server.UserID, config.Server.Port)
+
+	errorPing := embyServer.Ping()
+	if errorPing != nil {
+		logger.Fatalln("Server is not reachable")
+	}
+
 	client := emby.NewEmbyClient(embyServer)
 
 	seriesInt := series.NewSeriesFromConf(config)
 
 	embyCollector := metrics.NewEmbyCollector(client)
+
 	newRegistry := prometheus.NewRegistry()
 
 	if seriesInt != nil {
@@ -56,6 +63,7 @@ func main() {
 	handler := promhttp.HandlerFor(newRegistry, promhttp.HandlerOpts{})
 	http.Handle("/metrics", handler)
 	logger.Printf("Beginning to serve on port %d", config.Exporter.Port|9210)
+	logger.Printf("You can see the metrics on http://localhost:%d/metrics", config.Exporter.Port|9210)
 	http.ListenAndServe(fmt.Sprintf(":%d", config.Exporter.Port|9210), nil)
 
 }

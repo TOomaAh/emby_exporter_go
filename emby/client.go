@@ -30,13 +30,11 @@ func (c *EmbyClient) GetMetrics() *ServerMetrics {
 
 	for _, l := range library.LibraryItem {
 		size, _ := c.Server.GetLibrarySize(&l)
-		libraryMetrics = append(libraryMetrics, LibraryMetrics{
+		serverMetrics.LibraryMetrics = append(libraryMetrics, LibraryMetrics{
 			Name: l.Name,
 			Size: size,
 		})
 	}
-
-	serverMetrics.LibraryMetrics = libraryMetrics
 
 	sessions, err := c.Server.GetSessions()
 	if err != nil {
@@ -50,6 +48,7 @@ func (c *EmbyClient) GetMetrics() *ServerMetrics {
 	if err == nil {
 		for _, a := range activity.Items {
 			serverMetrics.Activity = append(serverMetrics.Activity, ActivityMetric{
+				ID:       a.ID,
 				Name:     a.Name,
 				Type:     a.Type,
 				Severity: a.Severity,

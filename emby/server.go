@@ -194,6 +194,11 @@ func (s *Server) GetLibrarySize(libraryItem *LibraryItem) (int, error) {
 	return librarySize, nil
 }
 
+func (s *Server) Ping() error {
+	_, err := s.request("GET", "/System/Ping", "")
+	return err
+}
+
 func (s *Server) request(method string, path string, body string) ([]byte, error) {
 	req, _ := http.NewRequest(method, fmt.Sprintf("%s:%d%s", s.Url, s.Port, path), strings.NewReader(body))
 	req.Header.Set("X-Emby-Token", s.Token)

@@ -24,7 +24,7 @@ func NewEmbyCollector(e *emby.EmbyClient) *EmbyCollector {
 		library:    prometheus.NewDesc("emby_media_item", "All Media Item", []string{"name", "size"}, nil),
 		sessions:   prometheus.NewDesc("emby_sessions", "All session", []string{"username", "client", "isPaused", "remoteEndPoint", "latitude", "longitude", "city", "region", "countryCode", "nowPlayingItemName", "tvshow", "season", "nowPlayingItemType", "percentPlayback", "playMethod"}, nil),
 		count:      prometheus.NewDesc("emby_sessions_count", "Session Count", []string{}, nil),
-		activity:   prometheus.NewDesc("emby_activity", "Activity log", []string{"name", "type", "severity", "date"}, nil),
+		activity:   prometheus.NewDesc("emby_activity", "Activity log", []string{"id", "name", "type", "severity", "date"}, nil),
 		alert:      prometheus.NewDesc("emby_alert", "Alert log", []string{"name", "overview", "shortOverview", "type", "date", "severity"}, nil),
 	}
 }
@@ -48,7 +48,7 @@ func (c *EmbyCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 	ch <- prometheus.MustNewConstMetric(c.count, prometheus.GaugeValue, float64(len(embyMetrics.Sessions)))
 	for i, activity := range embyMetrics.Activity {
-		ch <- prometheus.MustNewConstMetric(c.activity, prometheus.GaugeValue, float64(i), activity.Name, activity.Type, activity.Severity, activity.Date.Format("02/01/2006 15:04:05"))
+		ch <- prometheus.MustNewConstMetric(c.activity, prometheus.GaugeValue, float64(i), strconv.Itoa(activity.ID), activity.Name, activity.Type, activity.Severity, activity.Date.Format("02/01/2006 15:04:05"))
 	}
 	for i, alert := range embyMetrics.Alert {
 		ch <- prometheus.MustNewConstMetric(c.alert, prometheus.GaugeValue, float64(i), alert.Name, alert.Overview, alert.ShortOverview, alert.Type, alert.Date.Format("02/01/2006 15:04:05"), alert.Severity)

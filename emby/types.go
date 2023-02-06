@@ -1,6 +1,8 @@
 package emby
 
-import "time"
+import (
+	"time"
+)
 
 //SystemInfo return all server info
 type SystemInfo struct {
@@ -47,6 +49,7 @@ type Activity struct {
 }
 
 type ActivityMetric struct {
+	ID       int
 	Name     string
 	Type     string
 	Severity string
