@@ -39,23 +39,27 @@ func (c *EmbyCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (c *EmbyCollector) Collect(ch chan<- prometheus.Metric) {
-	embyMetrics := c.embyClient.GetMetrics()
-	ch <- prometheus.MustNewConstMetric(c.serverInfo, prometheus.GaugeValue, 1, embyMetrics.Info.Version, embyMetrics.Info.WanAddress, embyMetrics.Info.LocalAddress, strconv.FormatBool(embyMetrics.Info.HasUpdateAvailable), strconv.FormatBool(embyMetrics.Info.HasPendingRestart))
-	for i, session := range embyMetrics.Sessions {
+	c.embyClient.GetMetrics()
+	ch <- prometheus.MustNewConstMetric(c.serverInfo, prometheus.GaugeValue, 1, c.embyClient.ServerMetrics.Info.Version, c.embyClient.ServerMetrics.Info.WanAddress,
+		c.embyClient.ServerMetrics.Info.LocalAddress, strconv.FormatBool(c.embyClient.ServerMetrics.Info.HasUpdateAvailable),
+		strconv.FormatBool(c.embyClient.ServerMetrics.Info.HasPendingRestart))
+	for i, session := range c.embyClient.ServerMetrics.Sessions {
 		ch <- prometheus.MustNewConstMetric(c.sessions, prometheus.GaugeValue, float64(i), session.Username, session.Client, strconv.FormatBool(session.IsPaused), session.RemoteEndPoint, strconv.FormatFloat(session.Latitude, 'f', 6, 64), strconv.FormatFloat(session.Longitude, 'f', 6, 64), session.City, session.Region, session.CountryCode, session.NowPlayingItemName, session.TVShow, session.Season, session.NowPlayingItemType, strconv.FormatInt(session.PlaybackPercent, 10), session.PlayMethod)
 	}
 
-	for _, library := range embyMetrics.LibraryMetrics {
+	for _, library := range c.embyClient.ServerMetrics.LibraryMetrics {
 		ch <- prometheus.MustNewConstMetric(c.library, prometheus.GaugeValue, float64(library.Size), library.Name)
 	}
 
-	ch <- prometheus.MustNewConstMetric(c.count, prometheus.GaugeValue, float64(len(embyMetrics.Sessions)))
+	ch <- prometheus.MustNewConstMetric(c.count, prometheus.GaugeValue, float64(len(c.embyClient.ServerMetrics.Sessions)))
 
-	for i, activity := range embyMetrics.Activity {
-		ch <- prometheus.MustNewConstMetric(c.activity, prometheus.GaugeValue, float64(i), strconv.Itoa(activity.ID), activity.Name, activity.Type, activity.Severity, activity.Date.Format("02/01/2006 15:04:05"))
+	for i, activity := range c.embyClient.ServerMetrics.Activity {
+		ch <- prometheus.MustNewConstMetric(c.activity, prometheus.GaugeValue, float64(i), strconv.Itoa(activity.ID), activity.Name,
+			activity.Type, activity.Severity, activity.Date.Format("02/01/2006 15:04:05"))
 	}
 
-	for i, alert := range embyMetrics.Alert {
-		ch <- prometheus.MustNewConstMetric(c.alert, prometheus.GaugeValue, float64(i), fmt.Sprint(alert.ID), alert.Name, alert.Overview, alert.ShortOverview, alert.Type, alert.Date.Format("02/01/2006 15:04:05"), alert.Severity)
+	for i, alert := range c.embyClient.ServerMetrics.Alert {
+		ch <- prometheus.MustNewConstMetric(c.alert, prometheus.GaugeValue, float64(i), fmt.Sprint(alert.ID), alert.Name,
+			alert.Overview, alert.ShortOverview, alert.Type, alert.Date.Format("02/01/2006 15:04:05"), alert.Severity)
 	}
 }

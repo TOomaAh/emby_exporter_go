@@ -75,7 +75,7 @@ func (s *Server) GetLibrary() (*LibraryInfo, error) {
 func (s *Server) GetSessions() (*[]SessionsMetrics, error) {
 	resp, err := s.request("GET", "/Sessions", "")
 	if err != nil {
-		log.Println("Emby Server - GetSessions : " + err.Error())
+		log.Println("Cannot get sessions, maybe your server is unreachable")
 		return nil, err
 	}
 
@@ -146,7 +146,7 @@ func (s *Server) GetSessions() (*[]SessionsMetrics, error) {
 func (s *Server) GetAlert() (*Alert, error) {
 	resp, err := s.request("GET", "/System/ActivityLog/Entries?StartIndex=0&Limit=4&hasUserId=false", "")
 	if err != nil {
-		log.Println("Emby Server - GetAlert : " + err.Error())
+		log.Println("Cannot get alert, maybe your server is unreachable")
 		return nil, err
 	}
 
@@ -154,11 +154,7 @@ func (s *Server) GetAlert() (*Alert, error) {
 	err = json.Unmarshal(resp, &alert)
 
 	if err != nil {
-		log.Println("Emby Server - GetAlert Unmarshal : " + err.Error())
-		if e, ok := err.(*json.SyntaxError); ok {
-			log.Printf("Emby Server - GetAlert Unmarshal : syntax error at byte offset %d", e.Offset)
-		}
-		log.Printf("Emby Server - GetAlert Unmarshal : response body => %q", resp)
+		log.Println("Cannot parse alert response, your token is probably wrong")
 		return nil, err
 	}
 
@@ -168,7 +164,7 @@ func (s *Server) GetAlert() (*Alert, error) {
 func (s *Server) GetActivity() (*Activity, error) {
 	resp, err := s.request("GET", "/System/ActivityLog/Entries?StartIndex=0&Limit=7", "")
 	if err != nil {
-		log.Println("Emby Server - GetAlert : " + err.Error())
+		log.Println("Cannot get activity, maybe your server is unreachable")
 		return nil, err
 	}
 
@@ -176,11 +172,7 @@ func (s *Server) GetActivity() (*Activity, error) {
 	err = json.Unmarshal(resp, &activity)
 
 	if err != nil {
-		log.Println("Emby Server - GetActivity : " + err.Error())
-		if e, ok := err.(*json.SyntaxError); ok {
-			log.Printf("Emby Server - GetActivity Unmarshal : syntax error at byte offset %d", e.Offset)
-		}
-		log.Printf("Emby Server - GetActivity Unmarshal : response body => %q", resp)
+		log.Println("Cannot parse activity response, your token is probably wrong")
 		return nil, err
 	}
 
@@ -190,7 +182,7 @@ func (s *Server) GetActivity() (*Activity, error) {
 func (s *Server) GetSessionsSize() (int, error) {
 	sessions, err := s.GetSessions()
 	if err != nil {
-		log.Println("Emby Server - GetSessionsSize : " + err.Error())
+		log.Println("Cannot get session size, maybe your server is unreachable")
 		return 0, err
 	}
 
@@ -207,7 +199,7 @@ func (s *Server) GetLibrarySize(libraryItem *LibraryItem) (int, error) {
 		includeType[libraryItem.LibraryOptions.ContentType]), "")
 
 	if err != nil {
-		log.Printf("Emby Server - GetLibrarySize : %v", err.Error())
+		log.Println("Cannot get library size, maybe your server is unreachable or your user is not allowed to access this library")
 		return 0, err
 	}
 
@@ -215,11 +207,7 @@ func (s *Server) GetLibrarySize(libraryItem *LibraryItem) (int, error) {
 	err = json.Unmarshal(resp, &library)
 
 	if err != nil {
-		log.Println("Emby Server - GetLibrarySize Unmarshal : " + err.Error())
-		if e, ok := err.(*json.SyntaxError); ok {
-			log.Printf("Emby Server - GetLibrarySize Unmarshal : syntax error at byte offset %d", e.Offset)
-		}
-		log.Printf("Emby Server - GetLibrarySize Unmarshal : response body => %q", resp)
+		log.Println("Cannot parse library size response, your user id is probably wrong")
 		return 0, err
 	}
 	librarySize = library.TotalRecordCount
@@ -246,7 +234,7 @@ func (s *Server) request(method string, path string, body string) ([]byte, error
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println("Emby Server - request : " + err.Error())
+		log.Println("Problem with request to Emby Server")
 		return nil, err
 	}
 	defer resp.Body.Close()

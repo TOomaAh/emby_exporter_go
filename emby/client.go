@@ -5,24 +5,33 @@ import (
 )
 
 type EmbyClient struct {
-	Server *Server
+	Server        *Server
+	ServerMetrics *ServerMetrics
+}
+
+func cleanMetrics(c *EmbyClient) {
+	c.ServerMetrics.LibraryMetrics = nil
+	c.ServerMetrics.Activity = nil
+	c.ServerMetrics.Alert = nil
 }
 
 func NewEmbyClient(s *Server) *EmbyClient {
 	return &EmbyClient{
-		Server: s,
+		Server:        s,
+		ServerMetrics: &ServerMetrics{},
 	}
 }
 
-func (c *EmbyClient) GetMetrics() *ServerMetrics {
-	serverMetrics := ServerMetrics{}
+func (c *EmbyClient) GetMetrics() error {
+
+	cleanMetrics(c)
 	systemInfo, err := c.Server.GetServerInfo()
 
 	if err != nil {
 		return nil
 	}
 
-	serverMetrics.Info = systemInfo
+	c.ServerMetrics.Info = systemInfo
 
 	library, err := c.Server.GetLibrary()
 
@@ -34,7 +43,7 @@ func (c *EmbyClient) GetMetrics() *ServerMetrics {
 
 	for _, l := range library.LibraryItem {
 		size, _ := c.Server.GetLibrarySize(&l)
-		serverMetrics.LibraryMetrics = append(libraryMetrics, LibraryMetrics{
+		c.ServerMetrics.LibraryMetrics = append(libraryMetrics, LibraryMetrics{
 			Name: l.Name,
 			Size: size,
 		})
@@ -45,14 +54,14 @@ func (c *EmbyClient) GetMetrics() *ServerMetrics {
 		log.Println("Emby Client - GetMetrics : " + err.Error())
 		return nil
 	}
-	serverMetrics.Sessions = *sessions
-	serverMetrics.SessionsCount = len(*sessions)
+	c.ServerMetrics.Sessions = *sessions
+	c.ServerMetrics.SessionsCount = len(*sessions)
 
 	activity, err := c.Server.GetActivity()
 
 	if err == nil {
 		for _, a := range activity.Items {
-			serverMetrics.Activity = append(serverMetrics.Activity, ActivityMetric{
+			c.ServerMetrics.Activity = append(c.ServerMetrics.Activity, ActivityMetric{
 				ID:       a.ID,
 				Name:     a.Name,
 				Type:     a.Type,
@@ -66,7 +75,7 @@ func (c *EmbyClient) GetMetrics() *ServerMetrics {
 
 	if err == nil {
 		for _, a := range alert.Items {
-			serverMetrics.Alert = append(serverMetrics.Alert, AlertMetrics{
+			c.ServerMetrics.Alert = append(c.ServerMetrics.Alert, AlertMetrics{
 				ID:            a.ID,
 				Name:          a.Name,
 				Overview:      a.Overview,
@@ -77,7 +86,5 @@ func (c *EmbyClient) GetMetrics() *ServerMetrics {
 			})
 		}
 	}
-
-	return &serverMetrics
-
+	return nil
 }
