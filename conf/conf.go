@@ -1,7 +1,7 @@
 package conf
 
 import (
-	"log"
+	"fmt"
 	"os"
 
 	"gopkg.in/yaml.v2"
@@ -35,7 +35,7 @@ type Config struct {
 func NewConfig(path string) (*Config, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		log.Panicf("%s", err)
+		fmt.Printf("cannot open configuration file %s\n", path)
 		os.Exit(-1)
 	}
 
@@ -47,7 +47,7 @@ func NewConfig(path string) (*Config, error) {
 	err = decoder.Decode(&config)
 
 	if err != nil {
-		log.Panicf("Cannot decode config file: %s", err)
+		fmt.Printf("Cannot decode config file: %s", err)
 		os.Exit(-1)
 	}
 

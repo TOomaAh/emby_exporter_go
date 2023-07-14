@@ -19,8 +19,8 @@ type Indexer struct {
 }
 
 type SeriesInterface interface {
-	GetTodayEpisodes() *[]Episode
-	GetHistory() *[]Episode
+	GetTodayEpisodes() []*Episode
+	GetHistory() []*Episode
 	makeRequest(method string, path string, body string) ([]byte, error)
 }
 

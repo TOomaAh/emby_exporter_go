@@ -2,10 +2,13 @@ package geoip
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+)
+
+const (
+	geoIpUrl = "http://ip-api.com/json/"
 )
 
 type IPToGEO struct {
@@ -36,9 +39,8 @@ func New(ip string) *IPToGEO {
 }
 
 func (g *IPToGEO) GetInfo() (*GeoIPInformation, error) {
-	url := "http://ip-api.com/json/%s"
 
-	resp, err := http.Get(fmt.Sprintf(url, g.IP))
+	resp, err := http.Get(geoIpUrl + g.IP)
 	if err != nil {
 		log.Fatalln(err)
 	}

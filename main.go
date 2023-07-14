@@ -55,7 +55,7 @@ func main() {
 	newRegistry := prometheus.NewRegistry()
 
 	if seriesInt != nil {
-		serieCollector := series.NewSeriesCollector(seriesInt)
+		serieCollector := series.NewSeriesCollector(&seriesInt)
 		newRegistry.MustRegister(serieCollector)
 	}
 

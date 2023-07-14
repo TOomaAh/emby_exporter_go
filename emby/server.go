@@ -191,12 +191,12 @@ func (s *Server) GetSessionsSize() (int, error) {
 
 func (s *Server) GetLibrarySize(libraryItem *LibraryItem) (int, error) {
 	var librarySize int
-	resp, err := s.request("GET", fmt.Sprintf(
+	resp, err := s.request("GET",
 		//Ok I need minimum information. Only one Item and api returns the total number of items
-		"/Users/%s/Items?IncludeItemTypes=Movie&Recursive=true&Fields=BasicSyncInfo&EnableImageTypes=Primary&ParentId=%s&Limit=1&IncludeItemTypes=%s",
-		s.UserID,
-		libraryItem.ItemID,
-		includeType[libraryItem.LibraryOptions.ContentType]), "")
+		"/Users/"+
+			s.UserID+
+			"/Items?IncludeItemTypes=Movie&Recursive=true&Fields=BasicSyncInfo&EnableImageTypes=Primary&ParentId="+
+			libraryItem.ItemID+"&Limit=1&IncludeItemTypes="+includeType[libraryItem.LibraryOptions.ContentType], "")
 
 	if err != nil {
 		log.Println("Cannot get library size, maybe your server is unreachable or your user is not allowed to access this library")

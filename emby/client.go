@@ -39,11 +39,9 @@ func (c *EmbyClient) GetMetrics() error {
 		return nil
 	}
 
-	libraryMetrics := []LibraryMetrics{}
-
 	for _, l := range library.LibraryItem {
 		size, _ := c.Server.GetLibrarySize(&l)
-		c.ServerMetrics.LibraryMetrics = append(libraryMetrics, LibraryMetrics{
+		c.ServerMetrics.LibraryMetrics = append(c.ServerMetrics.LibraryMetrics, LibraryMetrics{
 			Name: l.Name,
 			Size: size,
 		})
