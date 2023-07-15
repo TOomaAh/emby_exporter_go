@@ -16,8 +16,9 @@ type Medusa struct {
 }
 
 const (
-	medusaHistory = "/api/v2/history?page=1&limit=25&sort[]={\"field\":\"date\",\"type\":\"desc\"}&filter={}"
-	medusaAllTV   = "/api/v2/series?sort="
+	medusaHistory          = "/api/v2/history?page=1&limit=25&sort[]={\"field\":\"date\",\"type\":\"desc\"}&filter={}"
+	medusaAllTV            = "/api/v2/series?sort="
+	medusaGetTodayEpisodes = "/api/v2/schedule?category[]=later&category[]=today&paused=true"
 )
 
 var (
@@ -27,22 +28,15 @@ var (
 func NewMedusa(url string, token string) *Medusa {
 	return &Medusa{
 		Indexer: &Indexer{
-			Url:   url,
-			Token: token,
+			Url:    url,
+			Token:  token,
+			client: &http.Client{},
 		},
-		client: &http.Client{},
 	}
-}
-
-func formatSeriesOrEpisode(episode int) string {
-	if episode > 10 {
-		return strconv.Itoa(episode)
-	}
-	return "0" + strconv.Itoa(episode)
 }
 
 func (m *Medusa) GetTodayEpisodes() []*Episode {
-	resp, err := m.makeRequest("GET", "/api/v2/schedule?category[]=later&category[]=today&paused=true", "")
+	resp, err := m.makeRequest("GET", medusaGetTodayEpisodes, "")
 	if err != nil {
 		log.Println("Medusa - GetTodayEpisodes : " + err.Error())
 		return nil
@@ -60,7 +54,7 @@ func (m *Medusa) GetTodayEpisodes() []*Episode {
 		episodes = append(episodes, &Episode{
 			Name:    s.ShowName,
 			AirDate: s.Airdate + " " + s.Airs,
-			Season:  "S" + formatSeriesOrEpisode(s.Season) + "E" + formatSeriesOrEpisode(s.Episode),
+			Season:  formatSeasonEpisodes(s.Season, s.Episode),
 		})
 	}
 
@@ -94,7 +88,7 @@ func (m *Medusa) GetHistory() []*Episode {
 		episodes = append(episodes, &Episode{
 			Name:    s.EpisodeTitle,
 			AirDate: year + "-" + month + "-" + day + " " + hours + ":" + minutes,
-			Season:  "S" + formatSeriesOrEpisode(s.Season) + "E" + formatSeriesOrEpisode(s.Episode),
+			Season:  formatSeasonEpisodes(s.Season, s.Episode),
 			Status:  s.StatusName,
 		})
 	}
@@ -127,10 +121,14 @@ func (m *Medusa) GetAllTVShow() []*Series {
 
 }
 
-func (m *Medusa) makeRequest(method string, path string, body string) ([]byte, error) {
-	req, _ = http.NewRequest(method, m.Url+path, strings.NewReader(body))
+func (m *Medusa) setToken(req *http.Request) {
 	req.Header.Set("x-api-key", m.Token)
 	req.Header.Set("Application-Type", "application/json")
+}
+
+func (m *Medusa) makeRequest(method string, path string, body string) ([]byte, error) {
+	req, _ = http.NewRequest(method, m.Url+path, strings.NewReader(body))
+	m.setToken(req)
 
 	if len(body) > 0 {
 		bodybytes := []byte(body)

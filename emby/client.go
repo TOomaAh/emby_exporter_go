@@ -4,6 +4,12 @@ import (
 	"log"
 )
 
+var (
+	libraries *LibraryInfo
+	sessions  []*SessionsMetrics
+	activity  *Activity
+)
+
 type EmbyClient struct {
 	Server        *Server
 	ServerMetrics *ServerMetrics
@@ -33,33 +39,33 @@ func (c *EmbyClient) GetMetrics() error {
 
 	c.ServerMetrics.Info = systemInfo
 
-	library, err := c.Server.GetLibrary()
+	libraries, err = c.Server.GetLibrary()
 
 	if err != nil {
 		return nil
 	}
 
-	for _, l := range library.LibraryItem {
+	for _, l := range libraries.LibraryItem {
 		size, _ := c.Server.GetLibrarySize(&l)
-		c.ServerMetrics.LibraryMetrics = append(c.ServerMetrics.LibraryMetrics, LibraryMetrics{
+		c.ServerMetrics.LibraryMetrics = append(c.ServerMetrics.LibraryMetrics, &LibraryMetrics{
 			Name: l.Name,
 			Size: size,
 		})
 	}
 
-	sessions, err := c.Server.GetSessions()
+	sessions, err = c.Server.GetSessions()
 	if err != nil {
 		log.Println("Emby Client - GetMetrics : " + err.Error())
 		return nil
 	}
-	c.ServerMetrics.Sessions = *sessions
-	c.ServerMetrics.SessionsCount = len(*sessions)
+	c.ServerMetrics.Sessions = sessions
+	c.ServerMetrics.SessionsCount = len(sessions)
 
-	activity, err := c.Server.GetActivity()
+	activity, err = c.Server.GetActivity()
 
 	if err == nil {
 		for _, a := range activity.Items {
-			c.ServerMetrics.Activity = append(c.ServerMetrics.Activity, ActivityMetric{
+			c.ServerMetrics.Activity = append(c.ServerMetrics.Activity, &ActivityMetric{
 				ID:       a.ID,
 				Name:     a.Name,
 				Type:     a.Type,
@@ -73,7 +79,7 @@ func (c *EmbyClient) GetMetrics() error {
 
 	if err == nil {
 		for _, a := range alert.Items {
-			c.ServerMetrics.Alert = append(c.ServerMetrics.Alert, AlertMetrics{
+			c.ServerMetrics.Alert = append(c.ServerMetrics.Alert, &AlertMetrics{
 				ID:            a.ID,
 				Name:          a.Name,
 				Overview:      a.Overview,

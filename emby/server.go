@@ -72,7 +72,7 @@ func (s *Server) GetLibrary() (*LibraryInfo, error) {
 	return &library, nil
 }
 
-func (s *Server) GetSessions() (*[]SessionsMetrics, error) {
+func (s *Server) GetSessions() ([]*SessionsMetrics, error) {
 	resp, err := s.request("GET", "/Sessions", "")
 	if err != nil {
 		log.Println("Cannot get sessions, maybe your server is unreachable")
@@ -85,62 +85,49 @@ func (s *Server) GetSessions() (*[]SessionsMetrics, error) {
 		log.Println("Emby Server - GetSessions : " + err.Error())
 		return nil, err
 	}
-	var sessionResult []SessionsMetrics
+	var sessionResult []*SessionsMetrics
 
 	//To retrieve only the playback sessions and not the connected devices
 	for _, session := range sessions {
 		if session.PlayState.PlayMethod != "" {
 
-			ip := geoip.New(session.RemoteEndPoint)
-			var lat, long float64 = 0.0, 0.0
-			var playbackPercent int64
-
-			var city, region, countryCode, tvShow, season string
-
-			var positionTicksSeconds float64 = (float64(session.PlayState.PositionTicks) / 10000000) / 60
-			var totalTime float64 = (float64(session.NowPlayingItem.RunTimeTicks) / 10000000) / 60
-			playbackPercent = (int64((positionTicksSeconds * 100) / totalTime))
-
-			if session.NowPlayingItem.Type == "Episode" {
-				tvShow = session.NowPlayingItem.SeriesName
-				season = session.NowPlayingItem.SeasonName
+			if err != nil {
+				log.Println("Emby Server - GetSessions : " + err.Error())
+				return nil, err
 			}
+			db := geoip.GetGeoIPDatabase()
 
-			if err == nil {
-				if s.GeoIp {
-					information, errGeoIp := ip.GetInfo()
-					if errGeoIp == nil {
-						city = information.City
-						region = information.RegionName
-						countryCode = information.CountryCode
-						lat = information.Lat
-						long = information.Lon
-					}
-				}
-			}
-			sessionResult = append(sessionResult, SessionsMetrics{
+			sessionMetrics := &SessionsMetrics{
 				Username:           session.UserName,
 				Client:             session.Client,
 				IsPaused:           session.PlayState.IsPaused,
 				RemoteEndPoint:     session.RemoteEndPoint,
-				Latitude:           lat,
-				Longitude:          long,
-				City:               city,
-				Region:             region,
-				CountryCode:        countryCode,
 				NowPlayingItemName: session.NowPlayingItem.Name,
 				NowPlayingItemType: session.NowPlayingItem.Type,
 				MediaDuration:      session.NowPlayingItem.RunTimeTicks,
 				PlaybackPosition:   session.PlayState.PositionTicks,
-				PlaybackPercent:    playbackPercent,
-				TVShow:             tvShow,
-				Season:             season,
+				PlaybackPercent:    session.PlayState.PositionTicks * 100 / session.NowPlayingItem.RunTimeTicks,
 				PlayMethod:         session.PlayState.PlayMethod,
-			})
+			}
+
+			if session.NowPlayingItem.Type == "Episode" {
+				sessionMetrics.TVShow = session.NowPlayingItem.SeriesName
+				sessionMetrics.Season = session.NowPlayingItem.SeasonName
+			}
+
+			if s.GeoIp {
+				sessionMetrics.Latitude, sessionMetrics.Longitude = db.GetLocation(session.RemoteEndPoint)
+				sessionMetrics.City = db.GetCity(session.RemoteEndPoint)
+				sessionMetrics.Region = db.GetRegion(session.RemoteEndPoint)
+				sessionMetrics.CountryCode = db.GetCountryCode(session.RemoteEndPoint)
+			}
+
+			sessionResult = append(sessionResult, sessionMetrics)
+
 		}
 	}
 
-	return &sessionResult, nil
+	return sessionResult, nil
 }
 
 func (s *Server) GetAlert() (*Alert, error) {
@@ -186,7 +173,7 @@ func (s *Server) GetSessionsSize() (int, error) {
 		return 0, err
 	}
 
-	return len(*sessions), nil
+	return len(sessions), nil
 }
 
 func (s *Server) GetLibrarySize(libraryItem *LibraryItem) (int, error) {

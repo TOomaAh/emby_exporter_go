@@ -33,6 +33,9 @@ type Config struct {
 }
 
 func NewConfig(path string) (*Config, error) {
+	if path == "" {
+		path = "./config.yml"
+	}
 	file, err := os.Open(path)
 	if err != nil {
 		fmt.Printf("cannot open configuration file %s\n", path)

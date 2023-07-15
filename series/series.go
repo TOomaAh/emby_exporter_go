@@ -1,6 +1,10 @@
 package series
 
-import "TOomaAh/emby_exporter_go/conf"
+import (
+	"TOomaAh/emby_exporter_go/conf"
+	"net/http"
+	"strconv"
+)
 
 type Series struct {
 	name string
@@ -14,14 +18,15 @@ type Episode struct {
 }
 
 type Indexer struct {
-	Url   string
-	Token string
+	Url    string
+	Token  string
+	client *http.Client
 }
 
 type SeriesInterface interface {
 	GetTodayEpisodes() []*Episode
 	GetHistory() []*Episode
-	makeRequest(method string, path string, body string) ([]byte, error)
+	setToken(req *http.Request)
 }
 
 func NewSeriesFromConf(conf *conf.Config) SeriesInterface {
@@ -31,4 +36,15 @@ func NewSeriesFromConf(conf *conf.Config) SeriesInterface {
 		return NewSonarr(conf.Series.Sonarr.Url, conf.Series.Sonarr.Token)
 	}
 	return nil
+}
+
+func formatSeasonEpisodes(season int, episode int) string {
+	return "S" + formatSeriesOrEpisode(season) + "E" + formatSeriesOrEpisode(episode)
+}
+
+func formatSeriesOrEpisode(episode int) string {
+	if episode > 10 {
+		return strconv.Itoa(episode)
+	}
+	return "0" + strconv.Itoa(episode)
 }

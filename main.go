@@ -3,12 +3,14 @@ package main
 import (
 	"TOomaAh/emby_exporter_go/conf"
 	"TOomaAh/emby_exporter_go/emby"
+	"TOomaAh/emby_exporter_go/geoip"
 	"TOomaAh/emby_exporter_go/metrics"
 	"TOomaAh/emby_exporter_go/series"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 
 	"github.com/jessevdk/go-flags"
 	"github.com/prometheus/client_golang/prometheus"
@@ -19,19 +21,27 @@ var Options struct {
 	ConfFile string `short:"c" long:"config" description:"Path of your configuration file" required:"false"`
 }
 
+func init() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	db := geoip.GetGeoIPDatabase()
+	go func() {
+		for _ = range c {
+			defer db.Reader.Close()
+		}
+	}()
+}
+
 func main() {
 	_, err := flags.ParseArgs(&Options, os.Args)
 
 	if err != nil {
 		log.Fatalln(err)
 	}
-	var configFile string
-	if Options.ConfFile == "" {
-		configFile = "./config.yml"
-	} else {
-		configFile = Options.ConfFile
-	}
-	config, err := conf.NewConfig(configFile)
+
+	_ = geoip.GetGeoIPDatabase()
+
+	config, err := conf.NewConfig(Options.ConfFile)
 
 	if err != nil {
 		log.Fatalln(err)

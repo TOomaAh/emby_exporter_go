@@ -18,6 +18,7 @@ type Sonarr struct {
 const (
 	sonarrHistory      = "/api/v3/history?page=1&pageSize=10&sortDirection=descending&sortKey=date"
 	sonarrEpisodeTitle = "/api/v3/episode?episodeIds=%d"
+	sonarrEpisodeToday = "/api/calendar?start="
 )
 
 var (
@@ -40,8 +41,9 @@ var (
 func NewSonarr(url string, token string) *Sonarr {
 	return &Sonarr{
 		&Indexer{
-			Url:   url,
-			Token: token,
+			Url:    url,
+			Token:  token,
+			client: &http.Client{},
 		},
 	}
 }
@@ -49,7 +51,7 @@ func NewSonarr(url string, token string) *Sonarr {
 func (s *Sonarr) GetTodayEpisodes() []*Episode {
 	currentTime := time.Now()
 	today := currentTime.Format("2006-01-02")
-	resp, err := s.makeRequest("GET", "/api/calendar?start="+today, "")
+	resp, err := s.makeRequest("GET", sonarrEpisodeToday+today, "")
 
 	if err != nil {
 		log.Println("Sonarr - GetTodayEpisodes" + err.Error())
@@ -67,7 +69,7 @@ func (s *Sonarr) GetTodayEpisodes() []*Episode {
 		episodes = append(episodes, &Episode{
 			Name:    s.Title,
 			AirDate: s.AirDate + " " + s.Series.AirTime,
-			Season:  "S" + formatSeriesOrEpisode(s.SeasonNumber) + "E" + formatSeriesOrEpisode(s.EpisodeNumber),
+			Season:  formatSeasonEpisodes(s.SeasonNumber, s.EpisodeNumber),
 		})
 	}
 
@@ -129,7 +131,7 @@ func (s *Sonarr) GetHistory() []*Episode {
 		episodes = append(episodes, &Episode{
 			Name:    episodeInfo.Title,
 			AirDate: time,
-			Season:  "S" + formatSeriesOrEpisode(episodeInfo.SeasonNumber) + "E" + formatSeriesOrEpisode(episodeInfo.EpisodeNumber),
+			Season:  formatSeasonEpisodes(episodeInfo.SeasonNumber, episodeInfo.EpisodeNumber),
 			Status:  sh.EventType,
 		})
 	}
@@ -137,9 +139,13 @@ func (s *Sonarr) GetHistory() []*Episode {
 	return episodes
 }
 
-func (s *Sonarr) makeRequest(method string, path string, body string) ([]byte, error) {
-	req, _ := http.NewRequest(method, fmt.Sprintf("%s%s&apikey=%s", s.Url, path, s.Token), strings.NewReader(body))
+func (s *Sonarr) setToken(req *http.Request) {
+	req.Header.Set("X-Api-Key", s.Token)
 	req.Header.Set("Application-Type", "application/json")
+}
+
+func (s *Sonarr) makeRequest(method string, path string, body string) ([]byte, error) {
+	req, _ = http.NewRequest(method, s.Url+path, strings.NewReader(body))
 
 	if len(body) > 0 {
 		bodybytes := []byte(body)
