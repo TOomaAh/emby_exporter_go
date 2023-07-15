@@ -28,6 +28,8 @@ func init() {
 	go func() {
 		for _ = range c {
 			defer db.Reader.Close()
+			log.Println("Stopping server...")
+			os.Exit(0)
 		}
 	}()
 }
