@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/jessevdk/go-flags"
 	"github.com/prometheus/client_golang/prometheus"
@@ -21,7 +22,23 @@ var Options struct {
 	ConfFile string `short:"c" long:"config" description:"Path of your configuration file" required:"false"`
 }
 
+func setTimeZone() {
+	if tz := os.Getenv("TZ"); tz != "" {
+		loc, err := time.LoadLocation(tz)
+		if err != nil {
+			log.Printf("Timezone %s is not valid, using utc as default", tz)
+			time.Local = time.UTC
+			return
+		}
+		log.Printf("Using timezone %s", tz)
+		time.Local = loc
+	} else {
+		time.Local = time.UTC
+	}
+}
+
 func init() {
+	setTimeZone()
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	db := geoip.GetGeoIPDatabase()

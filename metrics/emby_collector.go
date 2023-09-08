@@ -4,6 +4,7 @@ import (
 	"TOomaAh/emby_exporter_go/emby"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -55,11 +56,11 @@ func (c *EmbyCollector) Collect(ch chan<- prometheus.Metric) {
 
 	for i, activity := range c.embyClient.ServerMetrics.Activity {
 		ch <- prometheus.MustNewConstMetric(c.activity, prometheus.GaugeValue, float64(i), strconv.Itoa(activity.ID), activity.Name,
-			activity.Type, activity.Severity, activity.Date.Format("02/01/2006 15:04:05"))
+			activity.Type, activity.Severity, activity.Date.In(time.Local).Format("02/01/2006 15:04:05"))
 	}
 
 	for i, alert := range c.embyClient.ServerMetrics.Alert {
 		ch <- prometheus.MustNewConstMetric(c.alert, prometheus.GaugeValue, float64(i), fmt.Sprint(alert.ID), alert.Name,
-			alert.Overview, alert.ShortOverview, alert.Type, alert.Date.Format("02/01/2006 15:04:05"), alert.Severity)
+			alert.Overview, alert.ShortOverview, alert.Type, alert.Date.In(time.Local).Format("02/01/2006 15:04:05"), alert.Severity)
 	}
 }

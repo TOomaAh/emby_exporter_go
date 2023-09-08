@@ -18,6 +18,7 @@ go build .`
 ```
 docker run -d -it \
    --name=emby_exporter \
+   -e TZ=Europe/Paris \
    -e CONFIG_FILE=NAME_OF_YOUR_FILE.yml \
    -v '/path/to/your/config/file.yml:/config/file.yml' \
    bagul/goemby_exporter:latest
