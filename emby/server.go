@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
@@ -216,7 +215,7 @@ func (s *Server) request(method string, path string, body string) ([]byte, error
 	if len(body) > 0 {
 		bodybytes := []byte(body)
 		buf := bytes.NewBuffer(bodybytes)
-		req.Body = ioutil.NopCloser(buf)
+		req.Body = io.NopCloser(buf)
 	}
 
 	client := &http.Client{}
