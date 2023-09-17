@@ -1,0 +1,78 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout du code source
+      uses: actions/checkout@v2
+
+    - name: Set up QEMU
+      run: |
+        docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+      if: runner.os == 'Linux'
+
+    - name: Download MaxMind DB
+      run: |
+        # Remplacez "YOUR_LICENSE_KEY" par votre clé de licence MaxMind.
+        LICENSE_KEY=${{ secrets.MAXMIND_LICENSE_KEY }}
+        
+        # Utilisez curl pour télécharger la base de données depuis l'URL avec la clé de licence.
+        curl -o maxmind-db.tar.gz "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=${LICENSE_KEY}&suffix=tar.gz"
+        
+        # Décompressez le fichier tar.gz (assurez-vous que vous avez `tar` installé).
+        tar -zxvf maxmind-db.tar.gz
+        
+        # Déplacez le fichier .mmdb extrait à la racine du projet.
+        mv GeoLite2-City_*/GeoLite2-City.mmdb geoip.mmdb
+        
+        # Nettoyez les fichiers temporaires.
+        rm -rf GeoLite2-City_* maxmind-db.tar.gz
+      env:
+        LICENSE_KEY: ${{ secrets.MAXMIND_LICENSE_KEY }}
+
+    - name: Build et pousse l'image Docker
+      run: |
+        # Obtenez la dernière version taguée.
+        PREVIOUS_VERSION=$(git describe --tags --abbrev=0)
+        
+        # Extrait la partie numérique du tag.
+        PREVIOUS_VERSION_NUMBER=${PREVIOUS_VERSION#"v"}
+        
+        # Incrémente la version.
+        VERSION_NUMBER=$((PREVIOUS_VERSION_NUMBER + 1))
+        NEW_VERSION="v${VERSION_NUMBER}"
+        
+        # Construit l'image Docker pour plusieurs plates-formes.
+        docker buildx create --use
+        docker buildx build \
+          --platform linux/amd64,linux/arm64,linux/arm/v7 \
+          -t bagul/goemby_exporter:${NEW_VERSION} \
+          -t bagul/goemby_exporter:latest \
+          .
+        
+        # Connexion à Docker Hub.
+        echo "${DOCKERHUB_PASSWORD}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
+        
+        # Poussez l'image vers Docker Hub.
+        docker push bagul/goemby_exporter:${NEW_VERSION}
+        docker push bagul/goemby_exporter:latest
+        
+        # Créez un tag Git pour la nouvelle version.
+        git tag ${NEW_VERSION}
+        git push origin ${NEW_VERSION}
+        
+        # Nettoyez l'environnement Docker après utilisation.
+        docker buildx rm --all --force
+
+      env:
+        DOCKER_CLI_AGGREGATE: 1
