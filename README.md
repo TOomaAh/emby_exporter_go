@@ -1,7 +1,6 @@
 # Emby Exporter
 
-Hi there!
-Normally the project works. I invite you to try it, I have to refine it a bit to get some logs of things like that. I invite you to try it and if there is a problem or if you have a request don't hesitate to write an issue :)
+An exporter for emby that exports Emby's main metrics.
 
 
 ## For build this project. It's simple
@@ -10,6 +9,11 @@ go build .`
 
 
 ## To build the docker image (it's already build but just if you want):
+
+To build the exporter you need a maxmind database. To do this, go to [Maxmind](https://www.maxmind.com/en/home) and download the GeoLite2 City database.
+
+The ".mmdb" file should then be placed at the root of the project with the following name: `geoip.mmdb`
+
 
 `docker build -t emby_exporter .`
 
