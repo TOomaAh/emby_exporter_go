@@ -1,24 +1,10 @@
 package emby
 
-import (
-	"log"
-)
-
-var (
-	libraries *LibraryInfo
-	sessions  []*SessionsMetrics
-	activity  *Activity
-)
+import "fmt"
 
 type EmbyClient struct {
 	Server        *Server
 	ServerMetrics *ServerMetrics
-}
-
-func cleanMetrics(c *EmbyClient) {
-	c.ServerMetrics.LibraryMetrics = nil
-	c.ServerMetrics.Activity = nil
-	c.ServerMetrics.Alert = nil
 }
 
 func NewEmbyClient(s *Server) *EmbyClient {
@@ -28,66 +14,69 @@ func NewEmbyClient(s *Server) *EmbyClient {
 	}
 }
 
-func (c *EmbyClient) GetMetrics() error {
+func (c *EmbyClient) GetMetrics() *ServerMetrics {
+	var serverMetrics *ServerMetrics = c.ServerMetrics
 
-	cleanMetrics(c)
-	systemInfo, err := c.Server.GetServerInfo()
+	systemInfo := c.Server.GetServerInfo()
 
-	if err != nil {
-		return nil
-	}
-
-	c.ServerMetrics.Info = systemInfo
-
-	libraries, err = c.Server.GetLibrary()
-
-	if err != nil {
-		return nil
-	}
-
-	for _, l := range libraries.LibraryItem {
-		size, _ := c.Server.GetLibrarySize(&l)
-		c.ServerMetrics.LibraryMetrics = append(c.ServerMetrics.LibraryMetrics, &LibraryMetrics{
-			Name: l.Name,
-			Size: size,
-		})
-	}
-
-	sessions, err = c.Server.GetSessions()
-	if err != nil {
-		log.Println("Emby Client - GetMetrics : " + err.Error())
-		return nil
-	}
-	c.ServerMetrics.Sessions = sessions
-	c.ServerMetrics.SessionsCount = len(sessions)
-
-	activity, err = c.Server.GetActivity()
-
-	if err == nil {
-		for _, a := range activity.Items {
-			c.ServerMetrics.Activity = append(c.ServerMetrics.Activity, &ActivityMetric{
-				ID:       a.ID,
-				Name:     a.Name,
-				Type:     a.Type,
-				Severity: a.Severity,
-				Date:     a.Date,
-			})
+	if systemInfo == nil {
+		systemInfo = &SystemInfo{
+			Version:            "0.0.0",
+			HasPendingRestart:  false,
+			HasUpdateAvailable: false,
+			LocalAddress:       "",
+			WanAddress:         "",
 		}
 	}
 
-	alert, err := c.Server.GetAlert()
+	serverMetrics.Info = systemInfo
 
-	if err == nil {
-		for _, a := range alert.Items {
-			c.ServerMetrics.Alert = append(c.ServerMetrics.Alert, &AlertMetrics{
-				ID:            a.ID,
-				Name:          a.Name,
-				Overview:      a.Overview,
-				ShortOverview: a.ShortOverview,
-				Type:          a.Type,
-				Date:          a.Date,
-				Severity:      a.Severity,
-			})
+	libraries := c.Server.GetLibrary()
+	fmt.Println("len(libraries.LibraryItem): ", len(libraries.LibraryItem), "len(serverMetrics.LibraryMetrics): ", len(serverMetrics.LibraryMetrics))
+	if len(libraries.LibraryItem) != len(serverMetrics.LibraryMetrics) {
+		serverMetrics.LibraryMetrics = make([]*LibraryMetrics, len(libraries.LibraryItem))
+	}
+
+	for i, l := range libraries.LibraryItem {
+		serverMetrics.LibraryMetrics[i] = &LibraryMetrics{
+			Name: l.Name,
+			Size: c.Server.GetLibrarySize(&l),
+		}
+	}
+
+	c.ServerMetrics.Sessions = c.Server.GetSessionsMetrics()
+	c.ServerMetrics.SessionsCount = len(c.ServerMetrics.Sessions)
+
+	activity := c.Server.GetActivity()
+
+	if len(activity.Items) != len(serverMetrics.Activity) || len(serverMetrics.Activity) == 0 {
+		serverMetrics.Activity = make([]*ActivityMetric, len(activity.Items))
+	}
+
+	for i, a := range activity.Items {
+		serverMetrics.Activity[i] = &ActivityMetric{
+			ID:       a.ID,
+			Name:     a.Name,
+			Type:     a.Type,
+			Severity: a.Severity,
+			Date:     a.Date,
+		}
+	}
+
+	alert := c.Server.GetAlert()
+
+	if len(alert.Items) != len(serverMetrics.Alert) || len(serverMetrics.Alert) == 0 {
+		serverMetrics.Alert = make([]*AlertMetrics, len(alert.Items))
+	}
+
+	for i, a := range alert.Items {
+		serverMetrics.Alert[i] = &AlertMetrics{
+			ID:            a.ID,
+			Overview:      a.Overview,
+			ShortOverview: a.ShortOverview,
+			Type:          a.Type,
+			Date:          a.Date,
+			Severity:      a.Severity,
 		}
 	}
 	return nil
