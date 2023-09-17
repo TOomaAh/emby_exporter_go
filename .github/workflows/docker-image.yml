@@ -56,16 +56,16 @@ jobs:
         docker buildx create --use
         docker buildx build \
           --platform linux/amd64,linux/arm64,linux/arm/v7 \
-          -t your-dockerhub-username/your-image-name:${NEW_VERSION} \
-          -t your-dockerhub-username/your-image-name:latest \
+          -t bagul/goemby_exporter:${NEW_VERSION} \
+          -t bagul/goemby_exporter:latest \
           .
         
         # Connexion à Docker Hub.
         echo "${DOCKERHUB_PASSWORD}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
         
         # Poussez l'image vers Docker Hub.
-        docker push your-dockerhub-username/your-image-name:${NEW_VERSION}
-        docker push your-dockerhub-username/your-image-name:latest
+        docker push bagul/goemby_exporter:${NEW_VERSION}
+        docker push bagul/goemby_exporter:latest
         
         # Créez un tag Git pour la nouvelle version.
         git tag ${NEW_VERSION}
