@@ -50,6 +50,13 @@ func init() {
 	}()
 }
 
+func logRequest(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
+		handler.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 	_, err := flags.ParseArgs(&Options, os.Args)
 
@@ -75,11 +82,8 @@ func main() {
 	}
 
 	client := emby.NewEmbyClient(embyServer)
-
 	seriesInt := series.NewSeriesFromConf(config)
-
 	embyCollector := metrics.NewEmbyCollector(client)
-
 	newRegistry := prometheus.NewRegistry()
 
 	if seriesInt != nil {
@@ -92,6 +96,6 @@ func main() {
 	http.Handle("/metrics", handler)
 	logger.Printf("Beginning to serve on port %d", config.Exporter.Port|9210)
 	logger.Printf("You can see the metrics on http://localhost:%d/metrics", config.Exporter.Port|9210)
-	http.ListenAndServe(fmt.Sprintf(":%d", config.Exporter.Port|9210), nil)
+	http.ListenAndServe(fmt.Sprintf(":%d", config.Exporter.Port|9210), logRequest(http.DefaultServeMux))
 
 }
