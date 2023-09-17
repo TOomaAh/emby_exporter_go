@@ -6,17 +6,18 @@ import (
 )
 
 type Activity struct {
-	Items []struct {
-		ID       int       `json:"Id"`
-		Name     string    `json:"Name"`
-		Type     string    `json:"Type"`
-		Date     time.Time `json:"Date"`
-		UserID   string    `json:"UserId"`
-		Severity string    `json:"Severity"`
-	} `json:"Items"`
-	TotalRecordCount int `json:"TotalRecordCount"`
+	Items            []ActivityItem `json:"Items"`
+	TotalRecordCount int            `json:"TotalRecordCount"`
 }
 
+type ActivityItem struct {
+	ID       int       `json:"Id"`
+	Name     string    `json:"Name"`
+	Type     string    `json:"Type"`
+	Date     time.Time `json:"Date"`
+	UserID   string    `json:"UserId"`
+	Severity string    `json:"Severity"`
+}
 type ActivityMetric struct {
 	ID       int
 	Name     string
@@ -31,6 +32,7 @@ func (s *Server) GetActivity() *Activity {
 
 	if err != nil {
 		log.Println("Cannot get activity, maybe your server is unreachable")
+		activity.Items = make([]ActivityItem, 0)
 		return &activity
 	}
 

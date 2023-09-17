@@ -1,7 +1,5 @@
 package emby
 
-import "fmt"
-
 type EmbyClient struct {
 	Server        *Server
 	ServerMetrics *ServerMetrics
@@ -17,22 +15,9 @@ func NewEmbyClient(s *Server) *EmbyClient {
 func (c *EmbyClient) GetMetrics() *ServerMetrics {
 	var serverMetrics *ServerMetrics = c.ServerMetrics
 
-	systemInfo := c.Server.GetServerInfo()
-
-	if systemInfo == nil {
-		systemInfo = &SystemInfo{
-			Version:            "0.0.0",
-			HasPendingRestart:  false,
-			HasUpdateAvailable: false,
-			LocalAddress:       "",
-			WanAddress:         "",
-		}
-	}
-
-	serverMetrics.Info = systemInfo
+	serverMetrics.Info = c.Server.GetServerInfo()
 
 	libraries := c.Server.GetLibrary()
-	fmt.Println("len(libraries.LibraryItem): ", len(libraries.LibraryItem), "len(serverMetrics.LibraryMetrics): ", len(serverMetrics.LibraryMetrics))
 	if len(libraries.LibraryItem) != len(serverMetrics.LibraryMetrics) {
 		serverMetrics.LibraryMetrics = make([]*LibraryMetrics, len(libraries.LibraryItem))
 	}

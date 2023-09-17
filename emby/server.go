@@ -20,12 +20,12 @@ var includeType = map[string]string{
 }
 
 type Server struct {
+	httpClient *http.Client
 	Url        string
 	Token      string
 	UserID     string
 	Port       string
 	GeoIp      bool
-	httpClient *http.Client
 }
 
 type ServerMetrics struct {
@@ -50,17 +50,6 @@ func NewServer(url, token, userID string, port int, geoip bool) *Server {
 	}
 
 	return server
-}
-
-func (s *Server) GetServerInfo() *SystemInfo {
-	var systemInfo SystemInfo
-	err := s.request("GET", "/System/Info", "", &systemInfo)
-	if err != nil {
-		log.Println("Emby Server - GetServerInfo : " + err.Error())
-		return nil
-	}
-
-	return &systemInfo
 }
 
 func (s *Server) Ping() error {

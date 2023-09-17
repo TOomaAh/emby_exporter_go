@@ -6,15 +6,17 @@ import (
 )
 
 type Alert struct {
-	Items []struct {
-		ID            int       `json:"Id"`
-		Overview      string    `json:"Overview,omitempty"`
-		ShortOverview string    `json:"ShortOverview"`
-		Type          string    `json:"Type"`
-		Date          time.Time `json:"Date"`
-		Severity      string    `json:"Severity"`
-	} `json:"Items"`
-	TotalRecordCount int `json:"TotalRecordCount"`
+	Items            []AlertItem `json:"Items"`
+	TotalRecordCount int         `json:"TotalRecordCount"`
+}
+
+type AlertItem struct {
+	ID            int       `json:"Id"`
+	Overview      string    `json:"Overview,omitempty"`
+	ShortOverview string    `json:"ShortOverview"`
+	Type          string    `json:"Type"`
+	Date          time.Time `json:"Date"`
+	Severity      string    `json:"Severity"`
 }
 
 type AlertMetrics struct {
@@ -33,6 +35,7 @@ func (s *Server) GetAlert() *Alert {
 
 	if err != nil {
 		log.Println("Cannot get alert, maybe your server is unreachable")
+		alert.Items = make([]AlertItem, 0)
 		return &alert
 	}
 
