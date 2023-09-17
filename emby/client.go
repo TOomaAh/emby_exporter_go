@@ -34,7 +34,7 @@ func (c *EmbyClient) GetMetrics() *ServerMetrics {
 
 	activity := c.Server.GetActivity()
 
-	if len(activity.Items) != len(serverMetrics.Activity) || len(serverMetrics.Activity) == 0 {
+	if len(activity.Items) != len(serverMetrics.Activity) || (len(serverMetrics.Activity) == 0 && len(activity.Items) > 0) {
 		serverMetrics.Activity = make([]*ActivityMetric, len(activity.Items))
 	}
 
@@ -50,7 +50,7 @@ func (c *EmbyClient) GetMetrics() *ServerMetrics {
 
 	alert := c.Server.GetAlert()
 
-	if len(alert.Items) != len(serverMetrics.Alert) || len(serverMetrics.Alert) == 0 {
+	if len(alert.Items) != len(serverMetrics.Alert) || (len(serverMetrics.Alert) == 0 && len(alert.Items) > 0) {
 		serverMetrics.Alert = make([]*AlertMetrics, len(alert.Items))
 	}
 
