@@ -21,9 +21,6 @@ type Logger struct {
 	logger *zerolog.Logger
 }
 
-// Singleton
-var logger *Logger
-
 func New(level string) *Logger {
 
 	var l zerolog.Level
@@ -45,20 +42,30 @@ func New(level string) *Logger {
 
 	skipFrameCount := 3
 
-	log := zerolog.New(os.Stdout).With().Timestamp().CallerWithSkipFrameCount(zerolog.CallerSkipFrameCount + skipFrameCount).Logger()
+	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "15:04:05"}
 
-	logger = &Logger{
-		logger: &log,
+	output.FormatLevel = func(i interface{}) string {
+		return strings.ToUpper(fmt.Sprintf("| %-6s|", i))
 	}
 
-	return logger
-}
-
-func Get() *Logger {
-	if logger == nil {
-		logger = New("info")
+	output.FormatMessage = func(i interface{}) string {
+		return fmt.Sprintf("%s", i)
 	}
-	return logger
+
+	output.FormatFieldName = func(i interface{}) string {
+		return fmt.Sprintf("%s:", i)
+	}
+
+	output.FormatFieldValue = func(i interface{}) string {
+		return strings.ToUpper(fmt.Sprintf("%s", i))
+	}
+
+	logger := zerolog.New(output).With().Timestamp().CallerWithSkipFrameCount(zerolog.CallerSkipFrameCount + skipFrameCount).Logger()
+
+	return &Logger{
+		logger: &logger,
+	}
+
 }
 
 // Debug -.

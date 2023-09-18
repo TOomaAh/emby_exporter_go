@@ -2,6 +2,7 @@ package emby
 
 import (
 	"TOomaAh/emby_exporter_go/internal/entity"
+	"TOomaAh/emby_exporter_go/pkg/logger"
 	"bytes"
 	"encoding/json"
 	"io"
@@ -27,6 +28,7 @@ type Server struct {
 	UserID     string
 	Port       string
 	GeoIp      bool
+	Logger     *logger.Logger
 }
 
 func NewServer(url, token, userID string, port int, geoip bool) *Server {
@@ -39,6 +41,7 @@ func NewServer(url, token, userID string, port int, geoip bool) *Server {
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
+		Logger: logger.New("info"),
 	}
 
 	return server

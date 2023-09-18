@@ -16,19 +16,24 @@ var Options struct {
 }
 
 func setTimeZone() {
-	l := logger.Get()
-	if tz := os.Getenv("TZ"); tz != "" {
-		loc, err := time.LoadLocation(tz)
-		if err != nil {
-			l.Info("Timezone %s is not valid, using utc as default", tz)
-			time.Local = time.UTC
-			return
-		}
-		l.Info("Using timezone %s", tz)
-		time.Local = loc
-	} else {
+	l := logger.New("debug")
+	tz := os.Getenv("TZ")
+
+	if tz == "" {
+		l.Info("Using utc as default timezone")
 		time.Local = time.UTC
+		return
 	}
+
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		l.Warn("Timezone %s is not valid, using utc as default", tz)
+		time.Local = time.UTC
+		return
+	}
+	l.Info("Using timezone %s", tz)
+	time.Local = loc
+
 }
 
 func init() {

@@ -9,12 +9,14 @@ import (
 type EmbyClient struct {
 	Server        *Server
 	ServerMetrics *entity.ServerMetrics
+	Logger        *logger.Logger
 }
 
 func NewEmbyClient(s *Server) *EmbyClient {
 	return &EmbyClient{
 		Server:        s,
 		ServerMetrics: &entity.ServerMetrics{},
+		Logger:        logger.New("info"),
 	}
 }
 
@@ -22,7 +24,7 @@ func (s *Server) GetSessionsMetrics() []*entity.SessionsMetrics {
 	var sessions []entity.Sessions
 	err := s.request("GET", "/Sessions", "", &sessions)
 	if err != nil {
-		logger.Get().Info("Cannot get sessions, maybe your server is unreachable " + err.Error())
+		s.Logger.Info("Cannot get sessions, maybe your server is unreachable " + err.Error())
 		return []*entity.SessionsMetrics{}
 	}
 
@@ -43,7 +45,7 @@ func (s *Server) GetSessionsMetrics() []*entity.SessionsMetrics {
 		if session.HasPlayMethod() {
 
 			if err != nil {
-				logger.Get().Info("Emby Server - GetSessions : " + err.Error())
+				s.Logger.Info("Emby Server - GetSessions : " + err.Error())
 				return []*entity.SessionsMetrics{}
 			}
 

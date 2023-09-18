@@ -8,6 +8,7 @@ import (
 	"TOomaAh/emby_exporter_go/pkg/logger"
 	"TOomaAh/emby_exporter_go/pkg/series"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,7 +17,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func logRequest(handler http.Handler, logger *logger.Logger) http.Handler {
+func logRequest(handler http.Handler) http.Handler {
+	logger := logger.New("info")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.Info("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
 		handler.ServeHTTP(w, r)
@@ -37,12 +39,12 @@ func Run(config *conf.Config) {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	select {
-	case <-interrupt:
+	go func() {
+		<-interrupt
 		defer db.Reader.Close()
-		l.Info("Stopping server...")
+		log.Println("Stopping server...")
 		os.Exit(0)
-	}
+	}()
 
 	embyServer := emby.NewServer(config.Server.Hostname, config.Server.Token, config.Server.UserID, config.Server.Port, config.Options.GeoIP)
 
@@ -66,5 +68,5 @@ func Run(config *conf.Config) {
 	http.Handle("/metrics", handler)
 	l.Info("Beginning to serve on port %d", config.Exporter.Port|9210)
 	l.Info("You can see the metrics on http://localhost:%d/metrics", config.Exporter.Port|9210)
-	http.ListenAndServe(fmt.Sprintf(":%d", config.Exporter.Port|9210), logRequest(http.DefaultServeMux, l))
+	http.ListenAndServe(fmt.Sprintf(":%d", config.Exporter.Port|9210), logRequest(http.DefaultServeMux))
 }

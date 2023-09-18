@@ -1,5 +1,7 @@
 package entity
 
+import "strings"
+
 type TranscodeReasons string
 type PlayMethod string
 
@@ -79,18 +81,18 @@ type NowPlayingItem struct {
 }
 
 type TranscodingInfo struct {
-	AudioCodec                    string   `json:"AudioCodec"`
-	VideoCodec                    string   `json:"VideoCodec"`
-	IsVideoDirect                 bool     `json:"IsVideoDirect"`
-	IsAudioDirect                 bool     `json:"IsAudioDirect"`
-	Bitrate                       int      `json:"Bitrate"`
-	TranscodingPositionTicks      int64    `json:"TranscodingPositionTicks"`
-	TranscodingStartPositionTicks int64    `json:"TranscodingStartPositionTicks"`
-	TranscodeReasons              []string `json:"TranscodeReasons"`
-	CurrentCPUUsage               float64  `json:"CurrentCpuUsage"`
-	CurrentThrottle               int      `json:"CurrentThrottle"`
-	VideoDecoderIsHardware        bool     `json:"VideoDecoderIsHardware"`
-	VideoEncoderIsHardware        bool     `json:"VideoEncoderIsHardware"`
+	AudioCodec                    string             `json:"AudioCodec"`
+	VideoCodec                    string             `json:"VideoCodec"`
+	IsVideoDirect                 bool               `json:"IsVideoDirect"`
+	IsAudioDirect                 bool               `json:"IsAudioDirect"`
+	Bitrate                       int                `json:"Bitrate"`
+	TranscodingPositionTicks      int64              `json:"TranscodingPositionTicks"`
+	TranscodingStartPositionTicks int64              `json:"TranscodingStartPositionTicks"`
+	TranscodeReasons              []TranscodeReasons `json:"TranscodeReasons"`
+	CurrentCPUUsage               float64            `json:"CurrentCpuUsage"`
+	CurrentThrottle               int                `json:"CurrentThrottle"`
+	VideoDecoderIsHardware        bool               `json:"VideoDecoderIsHardware"`
+	VideoEncoderIsHardware        bool               `json:"VideoEncoderIsHardware"`
 }
 
 type Sessions struct {
@@ -123,6 +125,14 @@ type SessionsMetrics struct {
 	IsPaused           bool
 }
 
+func JoinTranscodeReasons(transcodeReasons []TranscodeReasons) string {
+	var reasons []string = make([]string, len(transcodeReasons))
+	for i, reason := range transcodeReasons {
+		reasons[i] = reason.String()
+	}
+	return strings.Join(reasons, ", ")
+}
+
 func (t TranscodeReasons) String() string {
 	return string(transcodeReasons[string(t)])
 }
@@ -139,6 +149,11 @@ func (s *Sessions) isEpisode() bool {
 	return s.NowPlayingItem.Type == "Episode"
 }
 
+func (s *Sessions) GetTranscodeReason() string {
+	// Join the slice of strings into a single string.
+	return JoinTranscodeReasons(s.TranscodingInfo.TranscodeReasons)
+}
+
 func (s *Sessions) To() *SessionsMetrics {
 	sessionsMetrics := &SessionsMetrics{
 		Username:           s.UserName,
@@ -151,6 +166,7 @@ func (s *Sessions) To() *SessionsMetrics {
 		PlaybackPosition:   s.PlayState.PositionTicks,
 		PlaybackPercent:    s.getPercentPlayed(),
 		PlayMethod:         s.getPlayMethod().String(),
+		TranscodeReasons:   s.GetTranscodeReason(),
 	}
 
 	if s.isEpisode() {
