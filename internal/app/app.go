@@ -6,7 +6,7 @@ import (
 	"TOomaAh/emby_exporter_go/pkg/emby"
 	"TOomaAh/emby_exporter_go/pkg/geoip"
 	"TOomaAh/emby_exporter_go/pkg/logger"
-	"TOomaAh/emby_exporter_go/series"
+	"TOomaAh/emby_exporter_go/pkg/series"
 	"fmt"
 	"net/http"
 	"os"
