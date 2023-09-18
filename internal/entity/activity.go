@@ -1,7 +1,6 @@
-package emby
+package entity
 
 import (
-	"log"
 	"time"
 )
 
@@ -24,17 +23,4 @@ type ActivityMetric struct {
 	Type     string
 	Severity string
 	Date     time.Time
-}
-
-func (s *Server) GetActivity() *Activity {
-	var activity Activity
-	err := s.request("GET", "/System/ActivityLog/Entries?StartIndex=0&Limit=7", "", &activity)
-
-	if err != nil {
-		log.Println("Cannot get activity, maybe your server is unreachable")
-		activity.Items = make([]ActivityItem, 0)
-		return &activity
-	}
-
-	return &activity
 }

@@ -1,9 +1,4 @@
-package emby
-
-import (
-	"TOomaAh/emby_exporter_go/geoip"
-	"log"
-)
+package entity
 
 type TranscodeReasons string
 type PlayMethod string
@@ -77,7 +72,7 @@ type PlayState struct {
 type NowPlayingItem struct {
 	Name         string `json:"Name"`
 	RunTimeTicks int64  `json:"RunTimeTicks"`
-	SeriesName   string `json:"SeriesName`
+	SeriesName   string `json:"SeriesName"`
 	SeasonName   string `json:"SeasonName"`
 	MediaType    string `json:"MediaType"`
 	Type         string `json:"Type"`
@@ -144,7 +139,7 @@ func (s *Sessions) isEpisode() bool {
 	return s.NowPlayingItem.Type == "Episode"
 }
 
-func (s *Sessions) to() *SessionsMetrics {
+func (s *Sessions) To() *SessionsMetrics {
 	sessionsMetrics := &SessionsMetrics{
 		Username:           s.UserName,
 		Client:             s.Client,
@@ -182,52 +177,6 @@ func (s *Sessions) getPercentPlayed() int64 {
 	return 0
 }
 
-func (s *Sessions) hasPlayMethod() bool {
+func (s *Sessions) HasPlayMethod() bool {
 	return s.PlayState.PlayMethod != ""
-}
-
-func (s *Server) GetSessionsMetrics() []*SessionsMetrics {
-	var sessions []Sessions
-	err := s.request("GET", "/Sessions", "", &sessions)
-	if err != nil {
-		log.Println("Cannot get sessions, maybe your server is unreachable " + err.Error())
-		return []*SessionsMetrics{}
-	}
-
-	count := 0
-	for i := 0; i < len(sessions); i++ {
-		if sessions[i].hasPlayMethod() {
-			count++
-		}
-	}
-
-	var sessionResult []*SessionsMetrics = make([]*SessionsMetrics, count)
-	count = 0
-	db := geoip.GetGeoIPDatabase()
-	var sessionMetrics *SessionsMetrics
-
-	//To retrieve only the playback sessions and not the connected devices
-	for _, session := range sessions {
-		if session.hasPlayMethod() {
-
-			if err != nil {
-				log.Println("Emby Server - GetSessions : " + err.Error())
-				return []*SessionsMetrics{}
-			}
-
-			sessionMetrics = session.to()
-
-			if s.GeoIp {
-				sessionMetrics.Latitude, sessionMetrics.Longitude = db.GetLocation(session.RemoteEndPoint)
-				sessionMetrics.City = db.GetCity(session.RemoteEndPoint)
-				sessionMetrics.Region = db.GetRegion(session.RemoteEndPoint)
-				sessionMetrics.CountryCode = db.GetCountryCode(session.RemoteEndPoint)
-			}
-
-			sessionResult[count] = sessionMetrics
-			count++
-		}
-	}
-
-	return sessionResult
 }

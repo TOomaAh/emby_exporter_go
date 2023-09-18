@@ -1,7 +1,7 @@
 package metrics
 
 import (
-	"TOomaAh/emby_exporter_go/emby"
+	"TOomaAh/emby_exporter_go/pkg/emby"
 	"fmt"
 	"strconv"
 	"time"
@@ -41,9 +41,16 @@ func (c *EmbyCollector) Describe(ch chan<- *prometheus.Desc) {
 
 func (c *EmbyCollector) Collect(ch chan<- prometheus.Metric) {
 	c.embyClient.GetMetrics()
-	ch <- prometheus.MustNewConstMetric(c.serverInfo, prometheus.GaugeValue, 1, c.embyClient.ServerMetrics.Info.Version, c.embyClient.ServerMetrics.Info.WanAddress,
-		c.embyClient.ServerMetrics.Info.LocalAddress, strconv.FormatBool(c.embyClient.ServerMetrics.Info.HasUpdateAvailable),
-		strconv.FormatBool(c.embyClient.ServerMetrics.Info.HasPendingRestart))
+	ch <- prometheus.MustNewConstMetric(
+		c.serverInfo,
+		prometheus.GaugeValue, 1,
+		c.embyClient.ServerMetrics.Info.Version,
+		c.embyClient.ServerMetrics.Info.WanAddress,
+		c.embyClient.ServerMetrics.Info.LocalAddress,
+		strconv.FormatBool(c.embyClient.ServerMetrics.Info.HasUpdateAvailable),
+		strconv.FormatBool(c.embyClient.ServerMetrics.Info.HasPendingRestart),
+	)
+
 	for i, session := range c.embyClient.ServerMetrics.Sessions {
 		ch <- prometheus.MustNewConstMetric(c.sessions, prometheus.GaugeValue, float64(i), session.Username, session.Client, strconv.FormatBool(session.IsPaused), session.RemoteEndPoint, strconv.FormatFloat(session.Latitude, 'f', 6, 64), strconv.FormatFloat(session.Longitude, 'f', 6, 64), session.City, session.Region, session.CountryCode, session.NowPlayingItemName, session.TVShow, session.Season, session.NowPlayingItemType, strconv.FormatInt(session.PlaybackPercent, 10), session.PlayMethod)
 	}

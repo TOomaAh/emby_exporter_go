@@ -1,7 +1,6 @@
-package emby
+package entity
 
 import (
-	"log"
 	"time"
 )
 
@@ -27,17 +26,4 @@ type AlertMetrics struct {
 	Type          string
 	Date          time.Time
 	Severity      string
-}
-
-func (s *Server) GetAlert() *Alert {
-	var alert Alert
-	err := s.request("GET", "/System/ActivityLog/Entries?StartIndex=0&Limit=4&hasUserId=false", "", &alert)
-
-	if err != nil {
-		log.Println("Cannot get alert, maybe your server is unreachable")
-		alert.Items = make([]AlertItem, 0)
-		return &alert
-	}
-
-	return &alert
 }
