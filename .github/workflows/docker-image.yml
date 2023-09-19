@@ -26,7 +26,6 @@ jobs:
       if: runner.os == 'Linux'
 
     - name: Download MaxMind DB
-      if: github.ref == 'refs/heads/main'
       run: |
         # Remplacez "YOUR_LICENSE_KEY" par votre clé de licence MaxMind.
         LICENSE_KEY=${{ secrets.MAXMIND_LICENSE_KEY }}
@@ -46,7 +45,7 @@ jobs:
         LICENSE_KEY: ${{ secrets.MAXMIND_LICENSE_KEY }}
 
     - name: Build et pousse l'image Docker
-      if: github.ref == 'refs/heads/dev'
+      if: github.ref == 'refs/heads/main'
       run: |
         # Extrait la version depuis le fichier version.go
         VERSION=$(cat version.go | grep 'Version =' | sed 's/[^0-9.]//g')
@@ -74,6 +73,7 @@ jobs:
         docker buildx rm --all --force
 
     - name: Build and push dev image
+      if: github.ref == 'refs/heads/dev'
       run: |
         # Extrait la version depuis le fichier version.go
         VERSION=$(cat version.go | grep 'Version =' | sed 's/[^0-9.]//g')
