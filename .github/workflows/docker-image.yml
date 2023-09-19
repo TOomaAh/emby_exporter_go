@@ -42,6 +42,24 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Download MaxMind DB
+        run: |
+          # Remplacez "YOUR_LICENSE_KEY" par votre clé de licence MaxMind.
+          LICENSE_KEY=${{ secrets.MAXMIND_LICENSE_KEY }}
+          
+          # Utilisez curl pour télécharger la base de données depuis l'URL avec la clé de licence.
+          curl -o maxmind-db.tar.gz "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=${LICENSE_KEY}&suffix=tar.gz"
+          
+          # Décompressez le fichier tar.gz (assurez-vous que vous avez `tar` installé).
+          tar -zxvf maxmind-db.tar.gz
+          
+          # Déplacez le fichier .mmdb extrait à la racine du projet.
+          mv GeoLite2-City_*/GeoLite2-City.mmdb geoip.mmdb
+          
+          # Nettoyez les fichiers temporaires.
+          rm -rf GeoLite2-City_* maxmind-db.tar.gz
+        env:
+          LICENSE_KEY: ${{ secrets.MAXMIND_LICENSE_KEY }}
       - name: Build and push by digest
         id: build
         uses: docker/build-push-action@v5
