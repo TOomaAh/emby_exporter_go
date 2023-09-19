@@ -20,7 +20,7 @@ import (
 func logRequest(handler http.Handler) http.Handler {
 	logger := logger.New("info")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.Info("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
+		logger.Info("%s %s %s", r.RemoteAddr, r.Method, r.URL)
 		handler.ServeHTTP(w, r)
 	})
 }
