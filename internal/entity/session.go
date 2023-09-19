@@ -110,6 +110,8 @@ type Sessions struct {
 }
 
 type SessionsMetrics struct {
+	Latitude           float64
+	Longitude          float64
 	Username           string
 	Client             string
 	RemoteEndPoint     string
@@ -122,11 +124,10 @@ type SessionsMetrics struct {
 	Season             string
 	PlayMethod         string
 	TranscodeReasons   string
-	Latitude           float64
-	Longitude          float64
+	MediaDuration      string
+	MediaTimeElapsed   string
 	PlaybackPosition   int64
 	MediaDurationTicks int64
-	MediaDuration      string
 	PlaybackPercent    int64
 	IsPaused           bool
 }
@@ -170,11 +171,11 @@ func formatTimeComponent(component int) string {
 	return strconv.Itoa(component)
 }
 
-func (s *Sessions) getMediaDuration() string {
-	if s.NowPlayingItem == nil || s.NowPlayingItem.RunTimeTicks == 0 {
+func (s *Sessions) getDuration(tick int64) string {
+	if tick == 0 {
 		return ""
 	}
-	duration := time.Duration(s.NowPlayingItem.RunTimeTicks * 100)
+	duration := time.Duration(tick * 100)
 	// return HH:MM:SS
 	return formatDuration(duration)
 }
@@ -190,10 +191,17 @@ func (s *Sessions) GetTranscodeReason() string {
 func (s *Sessions) GetEpisodeNumber() string {
 	if s.isEpisode() {
 		if s.NowPlayingItem.IndexNumber > 0 {
-			return "Ep. " + strconv.Itoa(s.NowPlayingItem.IndexNumber)
+			return "Ep. " + strconv.Itoa(s.NowPlayingItem.IndexNumber) + " - "
 		}
 	}
 	return ""
+}
+
+func (s *Sessions) getRuntimeTick() int64 {
+	if s.NowPlayingItem == nil || s.NowPlayingItem.RunTimeTicks == 0 {
+		return 0
+	}
+	return s.NowPlayingItem.RunTimeTicks
 }
 
 func (s *Sessions) To() *SessionsMetrics {
@@ -204,7 +212,8 @@ func (s *Sessions) To() *SessionsMetrics {
 		RemoteEndPoint:     s.RemoteEndPoint,
 		NowPlayingItemName: s.NowPlayingItem.Name,
 		NowPlayingItemType: s.NowPlayingItem.Type,
-		MediaDuration:      s.getMediaDuration(),
+		MediaDuration:      s.getDuration(s.getRuntimeTick()),
+		MediaTimeElapsed:   s.getDuration(s.PlayState.PositionTicks),
 		MediaDurationTicks: s.NowPlayingItem.RunTimeTicks,
 		PlaybackPosition:   s.PlayState.PositionTicks,
 		PlaybackPercent:    s.getPercentPlayed(),
@@ -215,7 +224,7 @@ func (s *Sessions) To() *SessionsMetrics {
 	if s.isEpisode() {
 		sessionsMetrics.TVShow = s.NowPlayingItem.SeriesName
 		sessionsMetrics.Season = s.NowPlayingItem.SeasonName
-		sessionsMetrics.NowPlayingItemName = s.GetEpisodeNumber() + " - " + sessionsMetrics.NowPlayingItemName
+		sessionsMetrics.NowPlayingItemName = s.GetEpisodeNumber() + sessionsMetrics.NowPlayingItemName
 	}
 
 	return sessionsMetrics

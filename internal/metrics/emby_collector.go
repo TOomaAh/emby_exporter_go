@@ -9,6 +9,52 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+var (
+	serverInfoValue = []string{"version",
+		"wanAdress",
+		"localAdress",
+		"hasUpdateAvailable",
+		"hasPendingRestart",
+	}
+	sessionsValue = []string{
+		"username",
+		"client",
+		"isPaused",
+		"remoteEndPoint",
+		"latitude",
+		"longitude",
+		"city",
+		"region",
+		"countryCode",
+		"nowPlayingItemName",
+		"tvshow",
+		"season",
+		"nowPlayingItemType",
+		"percentPlayback",
+		"playMethod",
+		"transcodeReason",
+		"mediaDuration",
+		"currentPlayTime",
+	}
+	libraryValue  = []string{"name"}
+	activityValue = []string{
+		"id",
+		"name",
+		"type",
+		"severity",
+		"date",
+	}
+	alertValue = []string{
+		"id",
+		"name",
+		"overview",
+		"shortOverview",
+		"type",
+		"date",
+		"severity",
+	}
+)
+
 type EmbyCollector struct {
 	embyClient *emby.EmbyClient
 	serverInfo *prometheus.Desc
@@ -22,12 +68,12 @@ type EmbyCollector struct {
 func NewEmbyCollector(e *emby.EmbyClient) *EmbyCollector {
 	return &EmbyCollector{
 		embyClient: e,
-		serverInfo: prometheus.NewDesc("emby_system_info", "All Emby Info", []string{"version", "wanAdress", "localAdress", "hasUpdateAvailable", "hasPendingRestart"}, nil),
-		library:    prometheus.NewDesc("emby_media_item", "All Media Item", []string{"name"}, nil),
-		sessions:   prometheus.NewDesc("emby_sessions", "All session", []string{"username", "client", "isPaused", "remoteEndPoint", "latitude", "longitude", "city", "region", "countryCode", "nowPlayingItemName", "tvshow", "season", "nowPlayingItemType", "percentPlayback", "playMethod", "transcodeReason", "mediaDuration"}, nil),
+		serverInfo: prometheus.NewDesc("emby_system_info", "All Emby Info", serverInfoValue, nil),
+		library:    prometheus.NewDesc("emby_media_item", "All Media Item", libraryValue, nil),
+		sessions:   prometheus.NewDesc("emby_sessions", "All session", sessionsValue, nil),
 		count:      prometheus.NewDesc("emby_sessions_count", "Session Count", []string{}, nil),
-		activity:   prometheus.NewDesc("emby_activity", "Activity log", []string{"id", "name", "type", "severity", "date"}, nil),
-		alert:      prometheus.NewDesc("emby_alert", "Alert log", []string{"id", "name", "overview", "shortOverview", "type", "date", "severity"}, nil),
+		activity:   prometheus.NewDesc("emby_activity", "Activity log", activityValue, nil),
+		alert:      prometheus.NewDesc("emby_alert", "Alert log", alertValue, nil),
 	}
 }
 
@@ -76,6 +122,7 @@ func (c *EmbyCollector) Collect(ch chan<- prometheus.Metric) {
 			session.PlayMethod,
 			session.TranscodeReasons,
 			session.MediaDuration,
+			session.MediaTimeElapsed,
 		)
 	}
 
