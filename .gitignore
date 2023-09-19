@@ -4,7 +4,9 @@
 *.dll
 *.so
 *.dylib
-
+*.mmdb
+*.yml
+*.dockerignore
 # Test binary, built with `go test -c`
 *.test
 
