@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - dev
 
 env:
   DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -59,6 +62,31 @@ jobs:
         # Poussez l'image vers Docker Hub.
         docker push bagul/goemby_exporter:${VERSION}
         docker push bagul/goemby_exporter:latest
+        
+        # Créez un tag Git pour la nouvelle version.
+        git tag ${VERSION}
+        git push origin ${VERSION}
+        
+        # Nettoyez l'environnement Docker après utilisation.
+        docker buildx rm --all --force
+
+    - name: Build and push dev image
+      run: |
+        # Extrait la version depuis le fichier version.go
+        VERSION=$(cat version.go | grep 'Version =' | sed 's/[^0-9.]//g')
+        
+        # Construit l'image Docker pour plusieurs plates-formes.
+        docker buildx create --use
+        docker buildx build \
+          --platform linux/amd64,linux/arm64,linux/arm/v7 \
+          -t bagul/goemby_exporter:${VERSION}-dev \
+          .
+        
+        # Connexion à Docker Hub.
+        echo "${DOCKERHUB_PASSWORD}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
+        
+        # Poussez l'image vers Docker Hub avec le tag "dev" uniquement.
+        docker push bagul/goemby_exporter:${VERSION}-dev
         
         # Créez un tag Git pour la nouvelle version.
         git tag ${VERSION}
