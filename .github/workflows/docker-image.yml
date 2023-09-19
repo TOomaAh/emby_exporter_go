@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
   pull_request:
     branches:
       - dev
@@ -74,6 +75,9 @@ jobs:
       run: |
         # Extrait la version depuis le fichier version.go
         VERSION=$(cat version.go | grep 'Version =' | sed 's/[^0-9.]//g')
+
+        # Echo verion
+        echo "Version "
         
         # Construit l'image Docker pour plusieurs plates-formes.
         docker buildx create --use
