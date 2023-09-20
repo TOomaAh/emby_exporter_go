@@ -2,11 +2,11 @@ package emby
 
 import (
 	"TOomaAh/emby_exporter_go/internal/entity"
+	"TOomaAh/emby_exporter_go/pkg/geoip"
 	"TOomaAh/emby_exporter_go/pkg/logger"
 	"bytes"
 	"encoding/json"
 	"io"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -28,10 +28,10 @@ type Server struct {
 	UserID     string
 	Port       string
 	GeoIp      bool
-	Logger     *logger.Logger
+	Logger     logger.Interface
 }
 
-func NewServer(url, token, userID string, port int, geoip bool) *Server {
+func NewServer(url, token, userID string, port int, geoip bool, logger logger.Interface) *Server {
 	server := &Server{
 		Url:    url,
 		Token:  token,
@@ -41,10 +41,56 @@ func NewServer(url, token, userID string, port int, geoip bool) *Server {
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
-		Logger: logger.New("info"),
+		Logger: logger,
 	}
 
 	return server
+}
+
+func (s Server) GetSessionsMetrics() []*entity.SessionsMetrics {
+	var sessions []entity.Sessions
+	err := s.request("GET", "/Sessions", "", &sessions)
+	if err != nil {
+		s.Logger.Info("Cannot get sessions, maybe your server is unreachable " + err.Error())
+		return []*entity.SessionsMetrics{}
+	}
+
+	count := 0
+	for i := 0; i < len(sessions); i++ {
+		if sessions[i].HasPlayMethod() {
+			count++
+		}
+	}
+
+	var sessionResult []*entity.SessionsMetrics = make([]*entity.SessionsMetrics, count)
+	count = 0
+	db := geoip.GetGeoIPDatabase()
+	var sessionMetrics *entity.SessionsMetrics
+
+	//To retrieve only the playback sessions and not the connected devices
+	for _, session := range sessions {
+		if session.HasPlayMethod() {
+
+			if err != nil {
+				s.Logger.Info("Emby Server - GetSessions : " + err.Error())
+				return []*entity.SessionsMetrics{}
+			}
+
+			sessionMetrics = session.To()
+
+			if s.GeoIp {
+				sessionMetrics.Latitude, sessionMetrics.Longitude = db.GetLocation(session.RemoteEndPoint)
+				sessionMetrics.City = db.GetCity(session.RemoteEndPoint)
+				sessionMetrics.Region = db.GetRegion(session.RemoteEndPoint)
+				sessionMetrics.CountryCode = db.GetCountryCode(session.RemoteEndPoint)
+			}
+
+			sessionResult[count] = sessionMetrics
+			count++
+		}
+	}
+
+	return sessionResult
 }
 
 func (s *Server) GetActivity() *entity.Activity {
@@ -52,7 +98,7 @@ func (s *Server) GetActivity() *entity.Activity {
 	err := s.request("GET", "/System/ActivityLog/Entries?StartIndex=0&Limit=7", "", &activity)
 
 	if err != nil {
-		log.Println("Cannot get activity, maybe your server is unreachable")
+		s.Logger.Info("Cannot get activity, maybe your server is unreachable")
 		activity.Items = make([]entity.ActivityItem, 0)
 		return &activity
 	}
@@ -78,7 +124,7 @@ func (s *Server) request(method string, path string, body string, v interface{})
 	resp, err := s.httpClient.Do(req)
 
 	if err != nil {
-		log.Println("Problem with request to Emby Server")
+		s.Logger.Info("Problem with request to Emby Server")
 		return err
 	}
 
@@ -89,7 +135,7 @@ func (s *Server) request(method string, path string, body string, v interface{})
 	}
 
 	if err = json.NewDecoder(resp.Body).Decode(v); err != nil {
-		log.Println("Cannot parse response from Emby Server")
+		s.Logger.Info("Cannot parse response from Emby Server")
 		return err
 	}
 
@@ -101,7 +147,7 @@ func (s *Server) GetLibrary() *entity.LibraryInfo {
 	err := s.request("GET", "/Library/VirtualFolders/Query", "", &library)
 
 	if err != nil {
-		log.Println("Emby Server - GetLibrary : " + err.Error())
+		s.Logger.Info("Emby Server - GetLibrary : " + err.Error())
 		library.LibraryItem = []entity.LibraryItem{}
 		return &library
 	}
@@ -113,7 +159,7 @@ func (s *Server) GetServerInfo() *entity.SystemInfo {
 	var systemInfo entity.SystemInfo
 	err := s.request("GET", "/System/Info", "", &systemInfo)
 	if err != nil {
-		log.Println("Emby Server - GetServerInfo : " + err.Error())
+		s.Logger.Info("Emby Server - GetServerInfo : " + err.Error())
 		return &entity.SystemInfo{
 			Version:            "0.0.0",
 			HasPendingRestart:  false,
@@ -136,7 +182,7 @@ func (s *Server) GetLibrarySize(libraryItem *entity.LibraryItem) int {
 			libraryItem.ItemID+"&Limit=1&IncludeItemTypes="+includeType[libraryItem.LibraryOptions.ContentType], "", &library)
 
 	if err != nil {
-		log.Println("Cannot get library size, maybe your server is unreachable or your user is not allowed to access this library : " + err.Error())
+		s.Logger.Info("Cannot get library size, maybe your server is unreachable or your user is not allowed to access this library : " + err.Error())
 		return 0
 	}
 
@@ -150,7 +196,7 @@ func (s *Server) GetAlert() *entity.Alert {
 	err := s.request("GET", "/System/ActivityLog/Entries?StartIndex=0&Limit=4&hasUserId=false", "", &alert)
 
 	if err != nil {
-		log.Println("Cannot get alert, maybe your server is unreachable")
+		s.Logger.Error("Cannot get alert, maybe your server is unreachable")
 		alert.Items = make([]entity.AlertItem, 0)
 		return &alert
 	}

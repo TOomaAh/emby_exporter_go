@@ -6,9 +6,7 @@ import (
 	"TOomaAh/emby_exporter_go/pkg/emby"
 	"TOomaAh/emby_exporter_go/pkg/geoip"
 	"TOomaAh/emby_exporter_go/pkg/logger"
-	"TOomaAh/emby_exporter_go/pkg/series"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -25,8 +23,7 @@ func logRequest(handler http.Handler) http.Handler {
 	})
 }
 
-func Run(config *conf.Config) {
-	l := logger.New("info")
+func Run(config *conf.Config, logger logger.Interface) {
 
 	_ = geoip.GetGeoIPDatabase()
 
@@ -42,31 +39,24 @@ func Run(config *conf.Config) {
 	go func() {
 		<-interrupt
 		defer db.Reader.Close()
-		log.Println("Stopping server...")
+		logger.Info("Stopping server...")
 		os.Exit(0)
 	}()
 
-	embyServer := emby.NewServer(config.Server.Hostname, config.Server.Token, config.Server.UserID, config.Server.Port, config.Options.GeoIP)
-
+	embyServer := emby.NewServer(config.Server.Hostname, config.Server.Token, config.Server.UserID, config.Server.Port, config.Options.GeoIP, logger)
 	errorPing := embyServer.Ping()
 	if errorPing != nil {
-		l.Error("Server is not reachable")
+		logger.Error("Server is not reachable")
 	}
 
-	client := emby.NewEmbyClient(embyServer)
-	seriesInt := series.NewSeriesFromConf(config)
+	client := emby.NewEmbyClient(embyServer, logger)
 	embyCollector := metrics.NewEmbyCollector(client)
 	newRegistry := prometheus.NewRegistry()
-
-	if seriesInt != nil {
-		serieCollector := series.NewSeriesCollector(&seriesInt)
-		newRegistry.MustRegister(serieCollector)
-	}
 
 	newRegistry.MustRegister(embyCollector)
 	handler := promhttp.HandlerFor(newRegistry, promhttp.HandlerOpts{})
 	http.Handle("/metrics", handler)
-	l.Info("Beginning to serve on port %d", config.Exporter.Port|9210)
-	l.Info("You can see the metrics on http://localhost:%d/metrics", config.Exporter.Port|9210)
+	logger.Info("Beginning to serve on port %d", config.Exporter.Port|9210)
+	logger.Info("You can see the metrics on http://localhost:%d/metrics", config.Exporter.Port|9210)
 	http.ListenAndServe(fmt.Sprintf(":%d", config.Exporter.Port|9210), logRequest(http.DefaultServeMux))
 }

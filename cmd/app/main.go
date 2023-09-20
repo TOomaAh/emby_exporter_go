@@ -4,7 +4,6 @@ import (
 	"TOomaAh/emby_exporter_go/conf"
 	"TOomaAh/emby_exporter_go/internal/app"
 	"TOomaAh/emby_exporter_go/pkg/logger"
-	"log"
 	"os"
 	"time"
 
@@ -16,22 +15,18 @@ var Options struct {
 }
 
 func setTimeZone() {
-	l := logger.New("debug")
-	tz := os.Getenv("TZ")
 
+	tz := os.Getenv("TZ")
 	if tz == "" {
-		l.Info("Using utc as default timezone")
 		time.Local = time.UTC
 		return
 	}
 
 	loc, err := time.LoadLocation(tz)
 	if err != nil {
-		l.Warn("Timezone %s is not valid, using utc as default", tz)
 		time.Local = time.UTC
 		return
 	}
-	l.Info("Using timezone %s", tz)
 	time.Local = loc
 
 }
@@ -41,18 +36,21 @@ func init() {
 }
 
 func main() {
+	l := logger.New("info")
+
+	l.Info("Using %s", time.Local.String())
 	_, err := flags.ParseArgs(&Options, os.Args)
 
 	if err != nil {
-		log.Fatalln(err)
+		l.Fatal(err)
 	}
 
 	config, err := conf.NewConfig(Options.ConfFile)
 
 	if err != nil {
-		log.Fatalln(err)
+		l.Fatal(err)
 	}
 
-	app.Run(config)
+	app.Run(config, l)
 
 }

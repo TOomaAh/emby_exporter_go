@@ -3,6 +3,7 @@ package logger
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -10,8 +11,8 @@ import (
 
 type Interface interface {
 	Debug(format interface{}, args ...interface{})
-	Info(format interface{}, args ...interface{})
-	Warn(format interface{}, args ...interface{})
+	Info(format string, args ...interface{})
+	Warn(format string, args ...interface{})
 	Error(format interface{}, args ...interface{})
 	Fatal(format interface{}, args ...interface{})
 }
@@ -20,6 +21,8 @@ type Interface interface {
 type Logger struct {
 	logger *zerolog.Logger
 }
+
+var _ Interface = (*Logger)(nil)
 
 func New(level string) *Logger {
 
@@ -58,6 +61,18 @@ func New(level string) *Logger {
 
 	output.FormatFieldValue = func(i interface{}) string {
 		return strings.ToUpper(fmt.Sprintf("%s", i))
+	}
+
+	zerolog.CallerMarshalFunc = func(pc uintptr, file string, line int) string {
+		short := file
+		for i := len(file) - 1; i > 0; i-- {
+			if file[i] == '/' {
+				short = file[i+1:]
+				break
+			}
+		}
+		file = short
+		return file + ":" + strconv.Itoa(line)
 	}
 
 	logger := zerolog.New(output).With().Timestamp().CallerWithSkipFrameCount(zerolog.CallerSkipFrameCount + skipFrameCount).Logger()

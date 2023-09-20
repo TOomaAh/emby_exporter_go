@@ -2,68 +2,21 @@ package emby
 
 import (
 	"TOomaAh/emby_exporter_go/internal/entity"
-	"TOomaAh/emby_exporter_go/pkg/geoip"
 	"TOomaAh/emby_exporter_go/pkg/logger"
 )
 
 type EmbyClient struct {
 	Server        *Server
 	ServerMetrics *entity.ServerMetrics
-	Logger        *logger.Logger
+	Logger        logger.Interface
 }
 
-func NewEmbyClient(s *Server) *EmbyClient {
+func NewEmbyClient(s *Server, l logger.Interface) *EmbyClient {
 	return &EmbyClient{
 		Server:        s,
 		ServerMetrics: &entity.ServerMetrics{},
-		Logger:        logger.New("info"),
+		Logger:        l,
 	}
-}
-
-func (s *Server) GetSessionsMetrics() []*entity.SessionsMetrics {
-	var sessions []entity.Sessions
-	err := s.request("GET", "/Sessions", "", &sessions)
-	if err != nil {
-		s.Logger.Info("Cannot get sessions, maybe your server is unreachable " + err.Error())
-		return []*entity.SessionsMetrics{}
-	}
-
-	count := 0
-	for i := 0; i < len(sessions); i++ {
-		if sessions[i].HasPlayMethod() {
-			count++
-		}
-	}
-
-	var sessionResult []*entity.SessionsMetrics = make([]*entity.SessionsMetrics, count)
-	count = 0
-	db := geoip.GetGeoIPDatabase()
-	var sessionMetrics *entity.SessionsMetrics
-
-	//To retrieve only the playback sessions and not the connected devices
-	for _, session := range sessions {
-		if session.HasPlayMethod() {
-
-			if err != nil {
-				s.Logger.Info("Emby Server - GetSessions : " + err.Error())
-				return []*entity.SessionsMetrics{}
-			}
-
-			sessionMetrics = session.To()
-
-			if s.GeoIp {
-				sessionMetrics.Latitude, sessionMetrics.Longitude = db.GetLocation(session.RemoteEndPoint)
-				sessionMetrics.City = db.GetCity(session.RemoteEndPoint)
-				sessionMetrics.Region = db.GetRegion(session.RemoteEndPoint)
-				sessionMetrics.CountryCode = db.GetCountryCode(session.RemoteEndPoint)
-			}
-
-			sessionResult[count] = sessionMetrics
-			count++
-		}
-	}
-
-	return sessionResult
 }
 
 func (c *EmbyClient) GetMetrics() *entity.ServerMetrics {
