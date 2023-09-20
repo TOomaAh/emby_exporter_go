@@ -25,7 +25,8 @@ func logRequest(handler http.Handler) http.Handler {
 
 func Run(config *conf.Config, logger logger.Interface) {
 
-	_ = geoip.GetGeoIPDatabase()
+	g := geoip.GetGeoIPDatabase()
+	g.SetLogger(logger)
 
 	// Waiting signal
 	c := make(chan os.Signal, 1)
