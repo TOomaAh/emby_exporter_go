@@ -2,7 +2,9 @@ package geoip
 
 import (
 	"TOomaAh/emby_exporter_go/pkg/logger"
+	"log"
 	"net"
+	"os"
 
 	"github.com/oschwald/geoip2-golang"
 )
@@ -20,7 +22,8 @@ func newGeoIP(file string) *GeoIPDatabase {
 	db, err := geoip2.Open(file)
 
 	if err != nil {
-		panic(err)
+		log.Fatalf("Error while opening GeoIP database: %s", err)
+		os.Exit(-1)
 	}
 
 	return &GeoIPDatabase{
