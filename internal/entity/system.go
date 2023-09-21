@@ -13,7 +13,7 @@ type ServerMetrics struct {
 	Info           *SystemInfo
 	LibraryMetrics []*LibraryMetrics
 	Sessions       []*SessionsMetrics
-	SessionsCount  int
 	Activity       []*ActivityMetric
 	Alert          []*AlertMetrics
+	SessionsCount  int
 }

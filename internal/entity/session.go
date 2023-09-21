@@ -77,27 +77,28 @@ type PlayState struct {
 
 type NowPlayingItem struct {
 	Name         string `json:"Name"`
-	RunTimeTicks int64  `json:"RunTimeTicks"`
 	SeriesName   string `json:"SeriesName"`
 	SeasonName   string `json:"SeasonName"`
 	MediaType    string `json:"MediaType"`
 	Type         string `json:"Type"`
+	RunTimeTicks int64  `json:"RunTimeTicks"`
+	Bitrate      int64  `json:"Bitrate"`
 	IndexNumber  int    `json:"IndexNumber"`
 }
 
 type TranscodingInfo struct {
-	AudioCodec                    string             `json:"AudioCodec"`
-	VideoCodec                    string             `json:"VideoCodec"`
-	IsVideoDirect                 bool               `json:"IsVideoDirect"`
-	IsAudioDirect                 bool               `json:"IsAudioDirect"`
-	Bitrate                       int                `json:"Bitrate"`
-	TranscodingPositionTicks      int64              `json:"TranscodingPositionTicks"`
-	TranscodingStartPositionTicks int64              `json:"TranscodingStartPositionTicks"`
 	TranscodeReasons              []TranscodeReasons `json:"TranscodeReasons"`
 	CurrentCPUUsage               float64            `json:"CurrentCpuUsage"`
-	CurrentThrottle               int                `json:"CurrentThrottle"`
+	TranscodingPositionTicks      int64              `json:"TranscodingPositionTicks"`
+	TranscodingStartPositionTicks int64              `json:"TranscodingStartPositionTicks"`
+	Bitrate                       int64              `json:"Bitrate"`
+	CurrentThrottle               int64              `json:"CurrentThrottle"`
+	AudioCodec                    string             `json:"AudioCodec"`
+	VideoCodec                    string             `json:"VideoCodec"`
 	VideoDecoderIsHardware        bool               `json:"VideoDecoderIsHardware"`
 	VideoEncoderIsHardware        bool               `json:"VideoEncoderIsHardware"`
+	IsVideoDirect                 bool               `json:"IsVideoDirect"`
+	IsAudioDirect                 bool               `json:"IsAudioDirect"`
 }
 
 type Sessions struct {
@@ -126,6 +127,7 @@ type SessionsMetrics struct {
 	TranscodeReasons   string
 	MediaDuration      string
 	MediaTimeElapsed   string
+	Bitrate            string
 	PlaybackPosition   int64
 	MediaDurationTicks int64
 	PlaybackPercent    int64
@@ -204,6 +206,17 @@ func (s *Sessions) getRuntimeTick() int64 {
 	return s.NowPlayingItem.RunTimeTicks
 }
 
+func byteToMb(b int64) int64 {
+	return b / 1000000
+}
+
+func (s *Sessions) getBitrate() string {
+	if s.TranscodingInfo == nil {
+		return strconv.Itoa(int(byteToMb(s.NowPlayingItem.Bitrate))) + " mbps"
+	}
+	return strconv.Itoa(int(byteToMb(s.TranscodingInfo.Bitrate))) + " mbps"
+}
+
 func (s *Sessions) To() *SessionsMetrics {
 	sessionsMetrics := &SessionsMetrics{
 		Username:           s.UserName,
@@ -219,6 +232,7 @@ func (s *Sessions) To() *SessionsMetrics {
 		PlaybackPercent:    s.getPercentPlayed(),
 		PlayMethod:         s.getPlayMethod().String(),
 		TranscodeReasons:   s.GetTranscodeReason(),
+		Bitrate:            s.getBitrate(),
 	}
 
 	if s.isEpisode() {

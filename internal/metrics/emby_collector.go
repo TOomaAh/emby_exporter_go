@@ -35,6 +35,7 @@ var (
 		"transcodeReason",
 		"mediaDuration",
 		"currentPlayTime",
+		"bitrate",
 	}
 	libraryValue  = []string{"name"}
 	activityValue = []string{
@@ -123,6 +124,7 @@ func (c *EmbyCollector) Collect(ch chan<- prometheus.Metric) {
 			session.TranscodeReasons,
 			session.MediaDuration,
 			session.MediaTimeElapsed,
+			session.Bitrate,
 		)
 	}
 

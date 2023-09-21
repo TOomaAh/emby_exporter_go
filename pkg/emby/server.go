@@ -49,7 +49,7 @@ func NewServer(url, token, userID string, port int, geoip bool, logger logger.In
 
 func (s Server) GetSessionsMetrics() []*entity.SessionsMetrics {
 	var sessions []entity.Sessions
-	err := s.request("GET", "/Sessions", "", &sessions)
+	err := s.request("GET", "/Sessions?IncludeAllSessionsIfAdmin=true&IsPlaying=true", "", &sessions)
 	if err != nil {
 		s.Logger.Info("Cannot get sessions, maybe your server is unreachable " + err.Error())
 		return []*entity.SessionsMetrics{}

@@ -19,8 +19,8 @@ type LibraryOptions struct {
 }
 
 type LibraryItem struct {
-	Name           string         `json:"Name"`
 	LibraryOptions LibraryOptions `json:"LibraryOptions"`
+	Name           string         `json:"Name"`
 	ItemID         string         `json:"ItemId"`
 }
 

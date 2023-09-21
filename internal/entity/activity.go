@@ -10,12 +10,12 @@ type Activity struct {
 }
 
 type ActivityItem struct {
-	ID       int       `json:"Id"`
 	Name     string    `json:"Name"`
 	Type     string    `json:"Type"`
-	Date     time.Time `json:"Date"`
 	UserID   string    `json:"UserId"`
 	Severity string    `json:"Severity"`
+	Date     time.Time `json:"Date"`
+	ID       int       `json:"Id"`
 }
 type ActivityMetric struct {
 	ID       int

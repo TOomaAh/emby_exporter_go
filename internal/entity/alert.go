@@ -10,20 +10,20 @@ type Alert struct {
 }
 
 type AlertItem struct {
-	ID            int       `json:"Id"`
 	Overview      string    `json:"Overview,omitempty"`
 	ShortOverview string    `json:"ShortOverview"`
 	Type          string    `json:"Type"`
-	Date          time.Time `json:"Date"`
 	Severity      string    `json:"Severity"`
+	Date          time.Time `json:"Date"`
+	ID            int       `json:"Id"`
 }
 
 type AlertMetrics struct {
-	ID            int
 	Name          string
 	Overview      string
 	ShortOverview string
 	Type          string
-	Date          time.Time
 	Severity      string
+	Date          time.Time
+	ID            int
 }
