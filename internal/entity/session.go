@@ -4,6 +4,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/dustin/go-humanize"
 )
 
 type TranscodeReasons string
@@ -82,7 +84,7 @@ type NowPlayingItem struct {
 	MediaType    string `json:"MediaType"`
 	Type         string `json:"Type"`
 	RunTimeTicks int64  `json:"RunTimeTicks"`
-	Bitrate      int64  `json:"Bitrate"`
+	Bitrate      uint64 `json:"Bitrate"`
 	IndexNumber  int    `json:"IndexNumber"`
 }
 
@@ -91,7 +93,7 @@ type TranscodingInfo struct {
 	CurrentCPUUsage               float64            `json:"CurrentCpuUsage"`
 	TranscodingPositionTicks      int64              `json:"TranscodingPositionTicks"`
 	TranscodingStartPositionTicks int64              `json:"TranscodingStartPositionTicks"`
-	Bitrate                       int64              `json:"Bitrate"`
+	Bitrate                       uint64             `json:"Bitrate"`
 	CurrentThrottle               int64              `json:"CurrentThrottle"`
 	AudioCodec                    string             `json:"AudioCodec"`
 	VideoCodec                    string             `json:"VideoCodec"`
@@ -206,15 +208,15 @@ func (s *Sessions) getRuntimeTick() int64 {
 	return s.NowPlayingItem.RunTimeTicks
 }
 
-func byteToMb(b int64) int64 {
-	return b / 1000000
+func byteToMb(b uint64) string {
+	return humanize.Bytes(b)
 }
 
 func (s *Sessions) getBitrate() string {
 	if s.TranscodingInfo == nil {
-		return strconv.Itoa(int(byteToMb(s.NowPlayingItem.Bitrate))) + " mbps"
+		return byteToMb(s.NowPlayingItem.Bitrate)
 	}
-	return strconv.Itoa(int(byteToMb(s.TranscodingInfo.Bitrate))) + " mbps"
+	return byteToMb(s.TranscodingInfo.Bitrate)
 }
 
 func (s *Sessions) To() *SessionsMetrics {
