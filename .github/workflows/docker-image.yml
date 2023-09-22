@@ -109,13 +109,10 @@ jobs:
             docker buildx imagetools create --tag bagul/goemby_exporter:latest --tag bagul/goemby_exporter:${{ steps.meta.outputs.version }} --platform linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64 --manifest bagul/goemby_exporter:latest --manifest bagul/goemby_exporter:${{ steps.meta.outputs.version }} --push
           elif [[ ${{ github.ref }} == refs/heads/dev ]]; then
             # Si la branche est "dev", ne poussez pas "latest"
-            echo "Branche 'dev' détectée, ne poussez pas 'latest'."
-          elif [[ ${{ github.event_name }} == 'pull_request' ]]; then
+            docker buildx imagetools create --tag bagul/goemby_exporter:dev --tag bagul/goemby_exporter:${{ steps.meta.outputs.version }} --platform linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64 --manifest bagul/goemby_exporter:dev --manifest bagul/goemby_exporter:${{ steps.meta.outputs.version }} --push
+          else; then
             # Si c'est une pull request, ne poussez rien
-            echo "C'est une pull request, ne poussez rien."
-          else
-            # Pour toutes les autres branches, poussez la dernière image en tant que "latest"
-            docker buildx imagetools create --tag bagul/goemby_exporter:latest --tag bagul/goemby_exporter:${{ steps.meta.outputs.version }} --platform linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64 --manifest bagul/goemby_exporter:latest --manifest bagul/goemby_exporter:${{ steps.meta.outputs.version }} --push
+            echo "On ne pousse rien"
           fi
       - name: Inspect image
         run: |
