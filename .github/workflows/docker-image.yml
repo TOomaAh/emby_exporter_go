@@ -3,11 +3,10 @@ name: Build and Push Docker Image
 on:
   push:
     branches:
-      - main
       - dev
   pull_request:
     branches:
-      - dev
+      - v*
 
 jobs:
   build:
@@ -67,7 +66,7 @@ jobs:
         run: |
           mkdir -p /tmp/digests
           digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"          
+          touch "/tmp/digests/${digest#sha256:}"
       - name: Upload digest
         uses: actions/upload-artifact@v3
         with:
@@ -98,12 +97,27 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Get version from go file
+        id: version
+        run: |
+          echo ::set-output name=version::$(grep -oP 'version = "\K[^"]+' main.go)
       - name: Create manifest list and push
         working-directory: /tmp/digests
         run: |
-          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf 'bagul/goemby_exporter@sha256:%s ' *)          
+          if [[ ${{ github.ref }} == refs/heads/v* ]]; then
+            # Si la branche commence par "v", poussez la dernière image en tant que "latest"
+            docker buildx imagetools create --tag bagul/goemby_exporter:latest --tag bagul/goemby_exporter:${{ steps.meta.outputs.version }} --platform linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64 --manifest bagul/goemby_exporter:latest --manifest bagul/goemby_exporter:${{ steps.meta.outputs.version }} --push
+          elif [[ ${{ github.ref }} == refs/heads/dev ]]; then
+            # Si la branche est "dev", ne poussez pas "latest"
+            echo "Branche 'dev' détectée, ne poussez pas 'latest'."
+          elif [[ ${{ github.event_name }} == 'pull_request' ]]; then
+            # Si c'est une pull request, ne poussez rien
+            echo "C'est une pull request, ne poussez rien."
+          else
+            # Pour toutes les autres branches, poussez la dernière image en tant que "latest"
+            docker buildx imagetools create --tag bagul/goemby_exporter:latest --tag bagul/goemby_exporter:${{ steps.meta.outputs.version }} --platform linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64 --manifest bagul/goemby_exporter:latest --manifest bagul/goemby_exporter:${{ steps.meta.outputs.version }} --push
+          fi
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect bagul/goemby_exporter:${{ steps.meta.outputs.version }} 
-          
+          docker buildx imagetools inspect bagul/goemby_exporter:${{ steps.meta.outputs.version }}
+

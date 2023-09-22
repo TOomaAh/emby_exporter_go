@@ -16,6 +16,7 @@ var (
 		"hasUpdateAvailable",
 		"hasPendingRestart",
 	}
+
 	sessionsValue = []string{
 		"username",
 		"client",
@@ -37,7 +38,9 @@ var (
 		"currentPlayTime",
 		"bitrate",
 	}
-	libraryValue  = []string{"name"}
+
+	libraryValue = []string{"name"}
+
 	activityValue = []string{
 		"id",
 		"name",
@@ -45,6 +48,7 @@ var (
 		"severity",
 		"date",
 	}
+
 	alertValue = []string{
 		"id",
 		"name",
