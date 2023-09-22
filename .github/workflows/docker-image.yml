@@ -104,17 +104,9 @@ jobs:
       - name: Create manifest list and push
         working-directory: /tmp/digests
         run: |
-          if [[ ${{ github.ref }} == refs/heads/v* ]]; then
-            # Si la branche commence par "v", poussez la dernière image en tant que "latest"
-            docker buildx imagetools create --tag bagul/goemby_exporter:latest --tag bagul/goemby_exporter:${{ steps.meta.outputs.version }} --platform linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64 --manifest bagul/goemby_exporter:latest --manifest bagul/goemby_exporter:${{ steps.meta.outputs.version }} --push
-          elif [[ ${{ github.ref }} == refs/heads/dev ]]; then
-            # Si la branche est "dev", ne poussez pas "latest"
-            docker buildx imagetools create --tag bagul/goemby_exporter:dev --platform linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64 --manifest bagul/goemby_exporter:dev --push
-          else
-            # Si c'est une pull request, ne poussez rien
-            echo "On ne pousse rien"
-          fi
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect bagul/goemby_exporter:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}
 
