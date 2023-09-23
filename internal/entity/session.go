@@ -1,8 +1,11 @@
-package emby
+package entity
 
 import (
-	"TOomaAh/emby_exporter_go/geoip"
-	"log"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/dustin/go-humanize"
 )
 
 type TranscodeReasons string
@@ -76,26 +79,28 @@ type PlayState struct {
 
 type NowPlayingItem struct {
 	Name         string `json:"Name"`
-	RunTimeTicks int64  `json:"RunTimeTicks"`
-	SeriesName   string `json:"SeriesName`
+	SeriesName   string `json:"SeriesName"`
 	SeasonName   string `json:"SeasonName"`
 	MediaType    string `json:"MediaType"`
 	Type         string `json:"Type"`
+	RunTimeTicks int64  `json:"RunTimeTicks"`
+	Bitrate      uint64 `json:"Bitrate"`
+	IndexNumber  int    `json:"IndexNumber"`
 }
 
 type TranscodingInfo struct {
-	AudioCodec                    string   `json:"AudioCodec"`
-	VideoCodec                    string   `json:"VideoCodec"`
-	IsVideoDirect                 bool     `json:"IsVideoDirect"`
-	IsAudioDirect                 bool     `json:"IsAudioDirect"`
-	Bitrate                       int      `json:"Bitrate"`
-	TranscodingPositionTicks      int64    `json:"TranscodingPositionTicks"`
-	TranscodingStartPositionTicks int64    `json:"TranscodingStartPositionTicks"`
-	TranscodeReasons              []string `json:"TranscodeReasons"`
-	CurrentCPUUsage               float64  `json:"CurrentCpuUsage"`
-	CurrentThrottle               int      `json:"CurrentThrottle"`
-	VideoDecoderIsHardware        bool     `json:"VideoDecoderIsHardware"`
-	VideoEncoderIsHardware        bool     `json:"VideoEncoderIsHardware"`
+	TranscodeReasons              []TranscodeReasons `json:"TranscodeReasons"`
+	CurrentCPUUsage               float64            `json:"CurrentCpuUsage"`
+	TranscodingPositionTicks      int64              `json:"TranscodingPositionTicks"`
+	TranscodingStartPositionTicks int64              `json:"TranscodingStartPositionTicks"`
+	Bitrate                       uint64             `json:"Bitrate"`
+	CurrentThrottle               int64              `json:"CurrentThrottle"`
+	AudioCodec                    string             `json:"AudioCodec"`
+	VideoCodec                    string             `json:"VideoCodec"`
+	VideoDecoderIsHardware        bool               `json:"VideoDecoderIsHardware"`
+	VideoEncoderIsHardware        bool               `json:"VideoEncoderIsHardware"`
+	IsVideoDirect                 bool               `json:"IsVideoDirect"`
+	IsAudioDirect                 bool               `json:"IsAudioDirect"`
 }
 
 type Sessions struct {
@@ -108,6 +113,8 @@ type Sessions struct {
 }
 
 type SessionsMetrics struct {
+	Latitude           float64
+	Longitude          float64
 	Username           string
 	Client             string
 	RemoteEndPoint     string
@@ -120,12 +127,21 @@ type SessionsMetrics struct {
 	Season             string
 	PlayMethod         string
 	TranscodeReasons   string
-	Latitude           float64
-	Longitude          float64
+	MediaDuration      string
+	MediaTimeElapsed   string
+	Bitrate            string
 	PlaybackPosition   int64
-	MediaDuration      int64
+	MediaDurationTicks int64
 	PlaybackPercent    int64
 	IsPaused           bool
+}
+
+func JoinTranscodeReasons(transcodeReasons []TranscodeReasons) string {
+	var reasons []string = make([]string, len(transcodeReasons))
+	for i, reason := range transcodeReasons {
+		reasons[i] = reason.String()
+	}
+	return strings.Join(reasons, ", ")
 }
 
 func (t TranscodeReasons) String() string {
@@ -144,7 +160,66 @@ func (s *Sessions) isEpisode() bool {
 	return s.NowPlayingItem.Type == "Episode"
 }
 
-func (s *Sessions) to() *SessionsMetrics {
+func formatDuration(duration time.Duration) string {
+	hours := int(duration.Hours())
+	minutes := int(duration.Minutes()) % 60
+	seconds := int(duration.Seconds()) % 60
+
+	return formatTimeComponent(hours) + "h" + formatTimeComponent(minutes) + "m" + formatTimeComponent(seconds) + "s"
+}
+
+func formatTimeComponent(component int) string {
+	if component < 10 {
+		return "0" + strconv.Itoa(component)
+	}
+	return strconv.Itoa(component)
+}
+
+func (s *Sessions) getDuration(tick int64) string {
+	if tick == 0 {
+		return ""
+	}
+	duration := time.Duration(tick * 100)
+	// return HH:MM:SS
+	return formatDuration(duration)
+}
+
+func (s *Sessions) GetTranscodeReason() string {
+	// Join the slice of strings into a single string.
+	if s.TranscodingInfo == nil {
+		return ""
+	}
+	return JoinTranscodeReasons(s.TranscodingInfo.TranscodeReasons)
+}
+
+func (s *Sessions) GetEpisodeNumber() string {
+	if s.isEpisode() {
+		if s.NowPlayingItem.IndexNumber > 0 {
+			return "Ep. " + strconv.Itoa(s.NowPlayingItem.IndexNumber) + " - "
+		}
+	}
+	return ""
+}
+
+func (s *Sessions) getRuntimeTick() int64 {
+	if s.NowPlayingItem == nil || s.NowPlayingItem.RunTimeTicks == 0 {
+		return 0
+	}
+	return s.NowPlayingItem.RunTimeTicks
+}
+
+func byteToMb(b uint64) string {
+	return humanize.Bytes(b)
+}
+
+func (s *Sessions) getBitrate() string {
+	if s.TranscodingInfo == nil {
+		return byteToMb(s.NowPlayingItem.Bitrate)
+	}
+	return byteToMb(s.TranscodingInfo.Bitrate)
+}
+
+func (s *Sessions) To() *SessionsMetrics {
 	sessionsMetrics := &SessionsMetrics{
 		Username:           s.UserName,
 		Client:             s.Client,
@@ -152,15 +227,20 @@ func (s *Sessions) to() *SessionsMetrics {
 		RemoteEndPoint:     s.RemoteEndPoint,
 		NowPlayingItemName: s.NowPlayingItem.Name,
 		NowPlayingItemType: s.NowPlayingItem.Type,
-		MediaDuration:      s.NowPlayingItem.RunTimeTicks,
+		MediaDuration:      s.getDuration(s.getRuntimeTick()),
+		MediaTimeElapsed:   s.getDuration(s.PlayState.PositionTicks),
+		MediaDurationTicks: s.NowPlayingItem.RunTimeTicks,
 		PlaybackPosition:   s.PlayState.PositionTicks,
 		PlaybackPercent:    s.getPercentPlayed(),
 		PlayMethod:         s.getPlayMethod().String(),
+		TranscodeReasons:   s.GetTranscodeReason(),
+		Bitrate:            s.getBitrate(),
 	}
 
 	if s.isEpisode() {
 		sessionsMetrics.TVShow = s.NowPlayingItem.SeriesName
 		sessionsMetrics.Season = s.NowPlayingItem.SeasonName
+		sessionsMetrics.NowPlayingItemName = s.GetEpisodeNumber() + sessionsMetrics.NowPlayingItemName
 	}
 
 	return sessionsMetrics
@@ -182,52 +262,6 @@ func (s *Sessions) getPercentPlayed() int64 {
 	return 0
 }
 
-func (s *Sessions) hasPlayMethod() bool {
+func (s *Sessions) HasPlayMethod() bool {
 	return s.PlayState.PlayMethod != ""
-}
-
-func (s *Server) GetSessionsMetrics() []*SessionsMetrics {
-	var sessions []Sessions
-	err := s.request("GET", "/Sessions", "", &sessions)
-	if err != nil {
-		log.Println("Cannot get sessions, maybe your server is unreachable " + err.Error())
-		return []*SessionsMetrics{}
-	}
-
-	count := 0
-	for i := 0; i < len(sessions); i++ {
-		if sessions[i].hasPlayMethod() {
-			count++
-		}
-	}
-
-	var sessionResult []*SessionsMetrics = make([]*SessionsMetrics, count)
-	count = 0
-	db := geoip.GetGeoIPDatabase()
-	var sessionMetrics *SessionsMetrics
-
-	//To retrieve only the playback sessions and not the connected devices
-	for _, session := range sessions {
-		if session.hasPlayMethod() {
-
-			if err != nil {
-				log.Println("Emby Server - GetSessions : " + err.Error())
-				return []*SessionsMetrics{}
-			}
-
-			sessionMetrics = session.to()
-
-			if s.GeoIp {
-				sessionMetrics.Latitude, sessionMetrics.Longitude = db.GetLocation(session.RemoteEndPoint)
-				sessionMetrics.City = db.GetCity(session.RemoteEndPoint)
-				sessionMetrics.Region = db.GetRegion(session.RemoteEndPoint)
-				sessionMetrics.CountryCode = db.GetCountryCode(session.RemoteEndPoint)
-			}
-
-			sessionResult[count] = sessionMetrics
-			count++
-		}
-	}
-
-	return sessionResult
 }

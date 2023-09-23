@@ -3,7 +3,7 @@ FROM golang:1.19-alpine
 WORKDIR /app
 COPY . .
 RUN go mod download
-RUN go build -o emby_exporter
+RUN go build -o emby_exporter ./cmd/app
 RUN apk update && apk add dos2unix tzdata && dos2unix entrypoint.sh
 
 
