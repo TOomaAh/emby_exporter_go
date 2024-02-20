@@ -17,13 +17,3 @@ type AlertItem struct {
 	Date          time.Time `json:"Date"`
 	ID            int       `json:"Id"`
 }
-
-type AlertMetrics struct {
-	Name          string
-	Overview      string
-	ShortOverview string
-	Type          string
-	Severity      string
-	Date          time.Time
-	ID            int
-}

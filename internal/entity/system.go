@@ -8,12 +8,3 @@ type SystemInfo struct {
 	HasPendingRestart  bool   `json:"HasPendingRestart"`
 	HasUpdateAvailable bool   `json:"HasUpdateAvailable"`
 }
-
-type ServerMetrics struct {
-	Info           *SystemInfo
-	LibraryMetrics []*LibraryMetrics
-	Sessions       []*SessionsMetrics
-	Activity       []*ActivityMetric
-	Alert          []*AlertMetrics
-	SessionsCount  int
-}

@@ -10,16 +10,15 @@ import (
 )
 
 type GeoIPDatabase struct {
-	Reader *geoip2.Reader
-	Logger logger.Interface
+	reader *geoip2.Reader
+	logger logger.Interface
 }
 
-var (
-	geoIP *GeoIPDatabase
-)
-
 func newGeoIP(file string) *GeoIPDatabase {
-	db, err := geoip2.Open(file)
+	var db *geoip2.Reader
+	var err error
+
+	db, err = geoip2.Open(file)
 
 	if err != nil {
 		log.Fatalf("Error while opening GeoIP database: %s", err)
@@ -27,27 +26,19 @@ func newGeoIP(file string) *GeoIPDatabase {
 	}
 
 	return &GeoIPDatabase{
-		Reader: db,
+		reader: db,
 	}
 }
 
 func (g *GeoIPDatabase) SetLogger(logger logger.Interface) {
-	g.Logger = logger
-}
-
-func GetGeoIPDatabase() *GeoIPDatabase {
-	if geoIP == nil {
-		geoIP = newGeoIP("./geoip.mmdb")
-	}
-
-	return geoIP
+	g.logger = logger
 }
 
 func (g *GeoIPDatabase) GetCountryCode(ip string) string {
-	record, err := g.Reader.Country(net.ParseIP(ip))
+	record, err := g.reader.Country(net.ParseIP(ip))
 
 	if err != nil {
-		g.Logger.Error("Error while getting country code: %s", err)
+		g.logger.Error("Error while getting country code: %s", err)
 		return ""
 	}
 
@@ -55,10 +46,10 @@ func (g *GeoIPDatabase) GetCountryCode(ip string) string {
 }
 
 func (g *GeoIPDatabase) GetCountryName(ip string) string {
-	record, err := g.Reader.Country(net.ParseIP(ip))
+	record, err := g.reader.Country(net.ParseIP(ip))
 
 	if err != nil {
-		g.Logger.Error("Error while getting country name: %s", err)
+		g.logger.Error("Error while getting country name: %s", err)
 		return ""
 	}
 
@@ -66,10 +57,10 @@ func (g *GeoIPDatabase) GetCountryName(ip string) string {
 }
 
 func (g *GeoIPDatabase) GetCity(ip string) string {
-	record, err := g.Reader.City(net.ParseIP(ip))
+	record, err := g.reader.City(net.ParseIP(ip))
 
 	if err != nil {
-		g.Logger.Error("Error while getting city: %s", err)
+		g.logger.Error("Error while getting city: %s", err)
 		return ""
 	}
 
@@ -77,10 +68,10 @@ func (g *GeoIPDatabase) GetCity(ip string) string {
 }
 
 func (g *GeoIPDatabase) GetContinent(ip string) string {
-	record, err := g.Reader.City(net.ParseIP(ip))
+	record, err := g.reader.City(net.ParseIP(ip))
 
 	if err != nil {
-		g.Logger.Error("Error while getting continent: %s", err)
+		g.logger.Error("Error while getting continent: %s", err)
 		return ""
 	}
 
@@ -88,10 +79,10 @@ func (g *GeoIPDatabase) GetContinent(ip string) string {
 }
 
 func (g *GeoIPDatabase) GetLocation(ip string) (float64, float64) {
-	record, err := g.Reader.City(net.ParseIP(ip))
+	record, err := g.reader.City(net.ParseIP(ip))
 
 	if err != nil {
-		g.Logger.Error("Error while getting location: %s", err)
+		g.logger.Error("Error while getting location: %s", err)
 		return 0, 0
 	}
 
@@ -99,10 +90,10 @@ func (g *GeoIPDatabase) GetLocation(ip string) (float64, float64) {
 }
 
 func (g *GeoIPDatabase) GetPostalCode(ip string) string {
-	record, err := g.Reader.City(net.ParseIP(ip))
+	record, err := g.reader.City(net.ParseIP(ip))
 
 	if err != nil {
-		g.Logger.Error("Error while getting postal code: %s", err)
+		g.logger.Error("Error while getting postal code: %s", err)
 		return ""
 	}
 
@@ -110,10 +101,10 @@ func (g *GeoIPDatabase) GetPostalCode(ip string) string {
 }
 
 func (g *GeoIPDatabase) GetRegion(ip string) string {
-	record, err := g.Reader.City(net.ParseIP(ip))
+	record, err := g.reader.City(net.ParseIP(ip))
 
 	if err != nil {
-		g.Logger.Error("Error while getting region: %s", err)
+		g.logger.Error("Error while getting region: %s", err)
 		return ""
 	}
 
@@ -121,4 +112,8 @@ func (g *GeoIPDatabase) GetRegion(ip string) string {
 		return ""
 	}
 	return record.Subdivisions[0].Names["en"]
+}
+
+func (g *GeoIPDatabase) Close() {
+	g.reader.Close()
 }
