@@ -34,9 +34,15 @@ func (c *LibraryCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	for _, l := range libraries.LibraryItem {
+		librarySize, err := c.server.GetLibrarySize(l.ItemID, l.LibraryOptions.ContentType)
+
+		if err != nil {
+			return
+		}
+
 		ch <- prometheus.MustNewConstMetric(
 			c.library,
-			prometheus.GaugeValue, 1,
+			prometheus.GaugeValue, float64(librarySize),
 			l.Name,
 		)
 	}
