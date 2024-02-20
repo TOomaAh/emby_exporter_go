@@ -7,28 +7,20 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type Server struct {
+	Hostname string `yaml:"url"`
+	Port     string `yaml:"port"`
+	Token    string `yaml:"token"`
+	UserID   string `yaml:"userID"`
+}
+
 type Config struct {
 	Exporter struct {
 		Port int `yaml:"port"`
 	} `yaml:"exporter,omitempty"`
-	Server struct {
-		Hostname string `yaml:"url"`
-		Port     int    `yaml:"port"`
-		Token    string `yaml:"token"`
-		UserID   string `yaml:"userID"`
-	} `yaml:"server"`
-	Series struct {
-		Sonarr struct {
-			Url   string `yaml:"url"`
-			Token string `yaml:"token"`
-		} `yaml:"sonarr,omitempty"`
-		Medusa struct {
-			Url   string `yaml:"url"`
-			Token string `yaml:"token"`
-		} `yaml:"medusa,omitempty"`
-	} `yaml:"series,omitempty"`
+	Server  Server `yaml:"server,omitempty"`
 	Options struct {
-		GeoIP bool `yaml:"geoip"`
+		GeoIP bool `yaml:"geoip" default:"false"`
 	} `yaml:"options,omitempty"`
 }
 
