@@ -3,7 +3,7 @@ package metrics
 import (
 	"TOomaAh/emby_exporter_go/pkg/emby"
 	"TOomaAh/emby_exporter_go/pkg/geoip"
-	"fmt"
+	"TOomaAh/emby_exporter_go/pkg/logger"
 	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -37,6 +37,7 @@ type SessionCollector struct {
 	server   *emby.Server
 	sessions *prometheus.Desc
 	count    *prometheus.Desc
+	logger   logger.Interface
 }
 
 func NewSessionCollector(server *emby.Server) *SessionCollector {
@@ -55,7 +56,7 @@ func (c *SessionCollector) Collect(ch chan<- prometheus.Metric) {
 	sessions, err := c.server.GetSessions()
 
 	if err != nil {
-		fmt.Println("Error getting sessions: ", err)
+		c.logger.Error("Error while getting sessions: %s", err)
 		return
 	}
 

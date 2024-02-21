@@ -17,8 +17,6 @@ var includeType = map[string]string{
 	"Episode": "TV Show",
 }
 
-const empty = ""
-
 const (
 	pingPath        = "/System/Ping"
 	sessionPath     = "/Sessions?IncludeAllSessionsIfAdmin=true&IsPlaying=true"
@@ -28,14 +26,6 @@ const (
 	systemAlertPath = "/System/ActivityLog/Entries?StartIndex=0&Limit=4&hasUserId=false"
 )
 
-var defaultSystemInfo = entity.SystemInfo{
-	Version:            "0.0.0",
-	HasPendingRestart:  false,
-	HasUpdateAvailable: false,
-	LocalAddress:       empty,
-	WanAddress:         empty,
-}
-
 type Server struct {
 	client *request.Client
 	UserID string
@@ -43,8 +33,6 @@ type Server struct {
 }
 
 func NewServer(s *conf.Server, logger logger.Interface) *Server {
-
-	logger.Info("Creating a new client for Emby Server with hostname " + s.Hostname + " and port " + s.Port + " and token " + s.Token + " and user id " + s.UserID)
 	client, err := request.NewClient(s.Hostname+":"+s.Port, s.Token)
 
 	if err != nil {

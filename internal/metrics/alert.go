@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"TOomaAh/emby_exporter_go/pkg/emby"
+	"TOomaAh/emby_exporter_go/pkg/logger"
 	"strconv"
 	"time"
 
@@ -22,6 +23,7 @@ var (
 type AlertCollector struct {
 	server *emby.Server
 	alert  *prometheus.Desc
+	logger logger.Interface
 }
 
 func NewAlertCollector(server *emby.Server) *AlertCollector {
@@ -39,6 +41,7 @@ func (c *AlertCollector) Collect(ch chan<- prometheus.Metric) {
 	alerts, err := c.server.GetAlerts()
 
 	if err != nil {
+		c.logger.Error("Error while getting alerts: %s", err)
 		return
 	}
 

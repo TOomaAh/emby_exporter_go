@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"TOomaAh/emby_exporter_go/pkg/emby"
+	"TOomaAh/emby_exporter_go/pkg/logger"
 	"strconv"
 	"time"
 
@@ -21,6 +22,7 @@ var (
 type ActivityCollector struct {
 	server   *emby.Server
 	activity *prometheus.Desc
+	logger   logger.Interface
 }
 
 func NewActivityCollector(server *emby.Server) *ActivityCollector {
@@ -38,6 +40,7 @@ func (c *ActivityCollector) Collect(ch chan<- prometheus.Metric) {
 	activities, err := c.server.GetActivity()
 
 	if err != nil {
+		c.logger.Error("Error while getting activity: %s", err)
 		return
 	}
 

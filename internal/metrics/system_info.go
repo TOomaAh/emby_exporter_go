@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"TOomaAh/emby_exporter_go/pkg/emby"
+	"TOomaAh/emby_exporter_go/pkg/logger"
 	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -19,6 +20,7 @@ var (
 type SystemInfoCollector struct {
 	server     *emby.Server
 	serverInfo *prometheus.Desc
+	logger     logger.Interface
 }
 
 func NewSystemInfoCollector(server *emby.Server) *SystemInfoCollector {
@@ -36,15 +38,7 @@ func (c *SystemInfoCollector) Collect(ch chan<- prometheus.Metric) {
 	systemInfo, err := c.server.GetServerInfo()
 
 	if err != nil {
-		ch <- prometheus.MustNewConstMetric(
-			c.serverInfo,
-			prometheus.GaugeValue, 1,
-			"0.0.0",
-			"empty",
-			"empty",
-			"false",
-			"false",
-		)
+		c.logger.Error("Error while getting system info: %s", err)
 		return
 	}
 
