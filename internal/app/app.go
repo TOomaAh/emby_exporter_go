@@ -24,37 +24,42 @@ func logRequest(handler http.Handler) http.Handler {
 }
 
 func Run(config *conf.Config, logger logger.Interface) {
-
-	g := geoip.GetGeoIPDatabase()
-	g.SetLogger(logger)
-
 	// Waiting signal
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 
-	db := geoip.GetGeoIPDatabase()
+	db, err := geoip.InitGeoIPDatabase(config.Options.GeoIP)
+	if err != nil {
+		logger.Error("GeoIP database is not initialized")
+		os.Exit(-1)
+	}
+	db.SetLogger(logger)
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
 	go func() {
 		<-interrupt
-		defer db.Reader.Close()
+		defer db.Close()
 		logger.Info("Stopping server...")
 		os.Exit(0)
 	}()
 
-	embyServer := emby.NewServer(config.Server.Hostname, config.Server.Token, config.Server.UserID, config.Server.Port, config.Options.GeoIP, logger)
+	embyServer := emby.NewServer(&config.Server, logger)
 	errorPing := embyServer.Ping()
 	if errorPing != nil {
 		logger.Error("Server is not reachable")
 	}
 
-	client := emby.NewEmbyClient(embyServer, logger)
-	embyCollector := metrics.NewEmbyCollector(client)
+	activityCollector := metrics.NewActivityCollector(embyServer)
+	alertCollector := metrics.NewAlertCollector(embyServer)
+	libraryCollector := metrics.NewLibraryCollector(embyServer)
+	sessionCollector := metrics.NewSessionCollector(embyServer)
+	systemInfoCollector := metrics.NewSystemInfoCollector(embyServer)
+
 	newRegistry := prometheus.NewRegistry()
 
-	newRegistry.MustRegister(embyCollector)
+	newRegistry.MustRegister(alertCollector, libraryCollector, sessionCollector, systemInfoCollector, activityCollector)
 	handler := promhttp.HandlerFor(newRegistry, promhttp.HandlerOpts{})
 	http.Handle("/metrics", handler)
 	logger.Info("Beginning to serve on port %d", config.Exporter.Port|9210)

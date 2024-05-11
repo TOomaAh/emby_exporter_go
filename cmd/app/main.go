@@ -11,7 +11,8 @@ import (
 )
 
 var Options struct {
-	ConfFile string `short:"c" long:"config" description:"Path of your configuration file" required:"false"`
+	ConfFile          string `short:"c" long:"config" description:"Path of your configuration file" required:"false"`
+	GeoIPDatabaseFile string `short:"g" long:"geoip" description:"Path of your GeoIP database file" required:"false"`
 }
 
 func setTimeZone() {
@@ -49,6 +50,12 @@ func main() {
 
 	if err != nil {
 		l.Fatal(err)
+	}
+
+	geoipDatabase := Options.GeoIPDatabaseFile
+
+	if geoipDatabase != "" {
+		os.Setenv("GEOIP_DB", geoipDatabase)
 	}
 
 	app.Run(config, l)

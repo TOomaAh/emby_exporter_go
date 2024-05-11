@@ -112,30 +112,6 @@ type Sessions struct {
 	Client          string           `json:"Client"`
 }
 
-type SessionsMetrics struct {
-	Latitude           float64
-	Longitude          float64
-	Username           string
-	Client             string
-	RemoteEndPoint     string
-	Region             string
-	City               string
-	CountryCode        string
-	NowPlayingItemName string
-	NowPlayingItemType string
-	TVShow             string
-	Season             string
-	PlayMethod         string
-	TranscodeReasons   string
-	MediaDuration      string
-	MediaTimeElapsed   string
-	Bitrate            string
-	PlaybackPosition   int64
-	MediaDurationTicks int64
-	PlaybackPercent    int64
-	IsPaused           bool
-}
-
 func JoinTranscodeReasons(transcodeReasons []TranscodeReasons) string {
 	var reasons []string = make([]string, len(transcodeReasons))
 	for i, reason := range transcodeReasons {
@@ -148,15 +124,11 @@ func (t TranscodeReasons) String() string {
 	return string(transcodeReasons[string(t)])
 }
 
-func (pm PlayMethod) equal(s string) bool {
-	return string(pm) == s
-}
-
 func (pm PlayMethod) String() string {
 	return string(pm)
 }
 
-func (s *Sessions) isEpisode() bool {
+func (s *Sessions) IsEpisode() bool {
 	return s.NowPlayingItem.Type == "Episode"
 }
 
@@ -175,7 +147,7 @@ func formatTimeComponent(component int) string {
 	return strconv.Itoa(component)
 }
 
-func (s *Sessions) getDuration(tick int64) string {
+func (s *Sessions) GetDuration(tick int64) string {
 	if tick == 0 {
 		return ""
 	}
@@ -193,7 +165,7 @@ func (s *Sessions) GetTranscodeReason() string {
 }
 
 func (s *Sessions) GetEpisodeNumber() string {
-	if s.isEpisode() {
+	if s.IsEpisode() {
 		if s.NowPlayingItem.IndexNumber > 0 {
 			return "Ep. " + strconv.Itoa(s.NowPlayingItem.IndexNumber) + " - "
 		}
@@ -201,7 +173,7 @@ func (s *Sessions) GetEpisodeNumber() string {
 	return ""
 }
 
-func (s *Sessions) getRuntimeTick() int64 {
+func (s *Sessions) GetRuntimeTick() int64 {
 	if s.NowPlayingItem == nil || s.NowPlayingItem.RunTimeTicks == 0 {
 		return 0
 	}
@@ -212,50 +184,22 @@ func byteToMb(b uint64) string {
 	return humanize.Bytes(b)
 }
 
-func (s *Sessions) getBitrate() string {
+func (s *Sessions) GetBitrate() string {
 	if s.TranscodingInfo == nil {
 		return byteToMb(s.NowPlayingItem.Bitrate)
 	}
 	return byteToMb(s.TranscodingInfo.Bitrate)
 }
 
-func (s *Sessions) To() *SessionsMetrics {
-	sessionsMetrics := &SessionsMetrics{
-		Username:           s.UserName,
-		Client:             s.Client,
-		IsPaused:           s.PlayState.IsPaused,
-		RemoteEndPoint:     s.RemoteEndPoint,
-		NowPlayingItemName: s.NowPlayingItem.Name,
-		NowPlayingItemType: s.NowPlayingItem.Type,
-		MediaDuration:      s.getDuration(s.getRuntimeTick()),
-		MediaTimeElapsed:   s.getDuration(s.PlayState.PositionTicks),
-		MediaDurationTicks: s.NowPlayingItem.RunTimeTicks,
-		PlaybackPosition:   s.PlayState.PositionTicks,
-		PlaybackPercent:    s.getPercentPlayed(),
-		PlayMethod:         s.getPlayMethod().String(),
-		TranscodeReasons:   s.GetTranscodeReason(),
-		Bitrate:            s.getBitrate(),
-	}
-
-	if s.isEpisode() {
-		sessionsMetrics.TVShow = s.NowPlayingItem.SeriesName
-		sessionsMetrics.Season = s.NowPlayingItem.SeasonName
-		sessionsMetrics.NowPlayingItemName = s.GetEpisodeNumber() + sessionsMetrics.NowPlayingItemName
-	}
-
-	return sessionsMetrics
-
-}
-
-func (s *Sessions) getPlayMethod() PlayMethod {
+func (s *Sessions) GetPlayMethod() string {
 	if s.TranscodingInfo == nil {
-		return DirectPlay
+		return DirectPlay.String()
 	} else {
-		return Transcoding
+		return Transcoding.String()
 	}
 }
 
-func (s *Sessions) getPercentPlayed() int64 {
+func (s *Sessions) GetPercentPlayed() int64 {
 	if s.NowPlayingItem.RunTimeTicks > 0 {
 		return s.PlayState.PositionTicks * 100 / s.NowPlayingItem.RunTimeTicks
 	}
