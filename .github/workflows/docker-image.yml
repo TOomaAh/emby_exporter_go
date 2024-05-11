@@ -4,9 +4,12 @@ on:
   push:
     branches:
       - dev
+      - v*
+      - latest
   pull_request:
     branches:
       - v*
+      - latest
 
 jobs:
   build:
