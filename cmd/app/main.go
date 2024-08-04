@@ -1,8 +1,8 @@
 package main
 
 import (
-	"TOomaAh/emby_exporter_go/conf"
 	"TOomaAh/emby_exporter_go/internal/app"
+	"TOomaAh/emby_exporter_go/internal/conf"
 	"TOomaAh/emby_exporter_go/pkg/logger"
 	"os"
 	"time"
@@ -11,7 +11,8 @@ import (
 )
 
 var Options struct {
-	ConfFile string `short:"c" long:"config" description:"Path of your configuration file" required:"false"`
+	ConfFile          string `short:"c" long:"config" description:"Path of your configuration file" required:"false"`
+	GeoIPDatabaseFile string `short:"g" long:"geoip" description:"Path of your GeoIP database file" required:"false"`
 }
 
 func setTimeZone() {
@@ -49,6 +50,12 @@ func main() {
 
 	if err != nil {
 		l.Fatal(err)
+	}
+
+	geoipDatabase := Options.GeoIPDatabaseFile
+
+	if geoipDatabase != "" {
+		os.Setenv("GEOIP_DB", geoipDatabase)
 	}
 
 	app.Run(config, l)

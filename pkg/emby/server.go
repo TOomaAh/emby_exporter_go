@@ -1,7 +1,6 @@
 package emby
 
 import (
-	"TOomaAh/emby_exporter_go/conf"
 	"TOomaAh/emby_exporter_go/internal/entity"
 	"TOomaAh/emby_exporter_go/pkg/logger"
 	"TOomaAh/emby_exporter_go/pkg/request"
@@ -17,8 +16,6 @@ var includeType = map[string]string{
 	"Episode": "TV Show",
 }
 
-const empty = ""
-
 const (
 	pingPath        = "/System/Ping"
 	sessionPath     = "/Sessions?IncludeAllSessionsIfAdmin=true&IsPlaying=true"
@@ -28,28 +25,22 @@ const (
 	systemAlertPath = "/System/ActivityLog/Entries?StartIndex=0&Limit=4&hasUserId=false"
 )
 
-var defaultSystemInfo = entity.SystemInfo{
-	Version:            "0.0.0",
-	HasPendingRestart:  false,
-	HasUpdateAvailable: false,
-	LocalAddress:       empty,
-	WanAddress:         empty,
-}
-
 type Server struct {
 	client *request.Client
 	UserID string
 	Logger logger.Interface
 }
 
-func NewServer(s *conf.Server, logger logger.Interface) *Server {
+type ServerInfo struct {
+	Hostname string
+	Port     string
+	UserID   string
+	Token    string
+}
 
-	logger.Info("Creating a new client for Emby Server with hostname " + s.Hostname + " and port " + s.Port + " and token " + s.Token + " and user id " + s.UserID)
-	client, err := request.NewClient(s.Hostname+":"+s.Port, s.Token)
-
-	if err != nil {
-		logger.Fatal("Cannot create a new client for Emby Server " + err.Error())
-		os.Exit(1)
+func NewServer(s *ServerInfo, logger logger.Interface) *Server {
+	if s.Hostname == "" {
+		s.Hostname = "http://localhost"
 	}
 
 	if s.Port == "" {
@@ -66,8 +57,11 @@ func NewServer(s *conf.Server, logger logger.Interface) *Server {
 		os.Exit(1)
 	}
 
-	if s.Hostname == "" {
-		s.Hostname = "localhost"
+	client, err := request.NewClient(s.Hostname+":"+s.Port, s.Token)
+
+	if err != nil {
+		logger.Fatal("Cannot create a new client for Emby Server " + err.Error())
+		os.Exit(1)
 	}
 
 	server := &Server{
@@ -162,9 +156,6 @@ func (s *Server) GetServerInfo() (*entity.SystemInfo, error) {
 		return nil, err
 	}
 
-	if err != nil {
-		return nil, err
-	}
 	return &systemInfo, nil
 }
 
