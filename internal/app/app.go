@@ -1,7 +1,7 @@
 package app
 
 import (
-	"TOomaAh/emby_exporter_go/conf"
+	"TOomaAh/emby_exporter_go/internal/conf"
 	"TOomaAh/emby_exporter_go/internal/metrics"
 	"TOomaAh/emby_exporter_go/pkg/emby"
 	"TOomaAh/emby_exporter_go/pkg/geoip"
@@ -24,9 +24,6 @@ func logRequest(handler http.Handler) http.Handler {
 }
 
 func Run(config *conf.Config, logger logger.Interface) {
-	// Waiting signal
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
 
 	db, err := geoip.InitGeoIPDatabase(config.Options.GeoIP)
 	if err != nil {
@@ -45,7 +42,12 @@ func Run(config *conf.Config, logger logger.Interface) {
 		os.Exit(0)
 	}()
 
-	embyServer := emby.NewServer(&config.Server, logger)
+	embyServer := emby.NewServer(&emby.ServerInfo{
+		Hostname: config.Server.Hostname,
+		Port:     config.Server.Port,
+		UserID:   config.Server.UserID,
+		Token:    config.Server.Token,
+	}, logger)
 	errorPing := embyServer.Ping()
 	if errorPing != nil {
 		logger.Error("Server is not reachable")

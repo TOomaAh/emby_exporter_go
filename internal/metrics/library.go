@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	libraryValue = []string{"name"}
+	libraryValue = []string{"id", "name"}
 )
 
 type LibraryCollector struct {
@@ -47,6 +47,7 @@ func (c *LibraryCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(
 			c.library,
 			prometheus.GaugeValue, float64(librarySize),
+			l.ItemID,
 			l.Name,
 		)
 	}
