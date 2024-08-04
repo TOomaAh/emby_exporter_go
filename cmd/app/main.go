@@ -1,8 +1,8 @@
 package main
 
 import (
-	"TOomaAh/emby_exporter_go/conf"
 	"TOomaAh/emby_exporter_go/internal/app"
+	"TOomaAh/emby_exporter_go/internal/conf"
 	"TOomaAh/emby_exporter_go/pkg/logger"
 	"os"
 	"time"
