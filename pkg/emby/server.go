@@ -31,14 +31,12 @@ type Server struct {
 	Logger logger.Interface
 }
 
-
 type ServerInfo struct {
 	Hostname string
 	Port     string
 	UserID   string
 	Token    string
 }
-
 
 func NewServer(s *ServerInfo, logger logger.Interface) *Server {
 	if s.Hostname == "" {
