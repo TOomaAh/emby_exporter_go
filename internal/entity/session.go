@@ -184,11 +184,15 @@ func byteToMb(b uint64) string {
 	return humanize.Bytes(b)
 }
 
-func (s *Sessions) GetBitrate() string {
+func (s *Sessions) GetBitrateValue() uint64 {
 	if s.TranscodingInfo == nil {
-		return byteToMb(s.NowPlayingItem.Bitrate)
+		return s.NowPlayingItem.Bitrate
 	}
-	return byteToMb(s.TranscodingInfo.Bitrate)
+	return s.TranscodingInfo.Bitrate
+}
+
+func (s *Sessions) GetBitrateFormat() string {
+	return byteToMb(s.GetBitrateValue())
 }
 
 func (s *Sessions) GetPlayMethod() string {

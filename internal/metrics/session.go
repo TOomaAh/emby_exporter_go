@@ -10,6 +10,11 @@ import (
 )
 
 var (
+	sessionsBitrates = []string{
+		"sessionId",
+		"username",
+		"client",
+	}
 	sessionsValue = []string{
 		"username",
 		"client",
@@ -34,17 +39,19 @@ var (
 )
 
 type SessionCollector struct {
-	server   *emby.Server
-	sessions *prometheus.Desc
-	count    *prometheus.Desc
-	logger   logger.Interface
+	server           *emby.Server
+	sessions         *prometheus.Desc
+	count            *prometheus.Desc
+	sessionsBitrates *prometheus.Desc
+	logger           logger.Interface
 }
 
 func NewSessionCollector(server *emby.Server) *SessionCollector {
 	return &SessionCollector{
-		server:   server,
-		sessions: prometheus.NewDesc("emby_sessions", "All session", sessionsValue, nil),
-		count:    prometheus.NewDesc("emby_sessions_count", "Session Count", []string{}, nil),
+		server:           server,
+		sessions:         prometheus.NewDesc("emby_sessions", "All session", sessionsValue, nil),
+		sessionsBitrates: prometheus.NewDesc("emby_sessions_bitrate", "Session Bitrate in KO", sessionsBitrates, nil),
+		count:            prometheus.NewDesc("emby_sessions_count", "Session Count", []string{}, nil),
 	}
 }
 
@@ -109,7 +116,16 @@ func (c *SessionCollector) Collect(ch chan<- prometheus.Metric) {
 			session.GetTranscodeReason(),
 			session.GetDuration(session.GetRuntimeTick()),
 			session.GetDuration(session.PlayState.PositionTicks),
-			session.GetBitrate(),
+			session.GetBitrateFormat(),
+		)
+
+		ch <- prometheus.MustNewConstMetric(
+			c.sessionsBitrates,
+			prometheus.GaugeValue,
+			float64(session.GetBitrateValue()/1024),
+			strconv.Itoa(i),
+			session.UserName,
+			session.Client,
 		)
 	}
 

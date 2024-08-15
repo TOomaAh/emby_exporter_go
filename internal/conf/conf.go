@@ -46,8 +46,6 @@ func NewConfig(path string) (*Config, error) {
 		os.Exit(-1)
 	}
 
-	fmt.Printf("Configuration : %+v\n", config)
-
 	return &config, nil
 
 }
