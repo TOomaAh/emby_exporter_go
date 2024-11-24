@@ -61,7 +61,7 @@ func main() {
 		os.Setenv("GEOIP_DB", geoipDatabase)
 	}
 
-	db, err := geoip.InitGeoIPDatabase(config.Options.GeoIP)
+	db, err := geoip.InitGeoIPDatabase(config.Options.GeoIP, l)
 	if err != nil {
 		l.Error("GeoIP database is not initialized")
 		os.Exit(-1)

@@ -4,12 +4,10 @@ import (
 	"TOomaAh/emby_exporter_go/internal/conf"
 	"TOomaAh/emby_exporter_go/internal/metrics"
 	"TOomaAh/emby_exporter_go/pkg/emby"
-	"TOomaAh/emby_exporter_go/pkg/geoip"
 	"TOomaAh/emby_exporter_go/pkg/logger"
 	"fmt"
 	"net/http"
 	"os"
-	"os/signal"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -24,23 +22,6 @@ func logRequest(handler http.Handler) http.Handler {
 }
 
 func Run(config *conf.Config, logger logger.Interface) {
-
-	db, err := geoip.InitGeoIPDatabase(config.Options.GeoIP)
-	if err != nil {
-		logger.Error("GeoIP database is not initialized")
-		os.Exit(-1)
-	}
-	db.SetLogger(logger)
-
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt)
-
-	go func() {
-		<-interrupt
-		defer db.Close()
-		logger.Info("Stopping server...")
-		os.Exit(0)
-	}()
 
 	embyServer := emby.NewServer(&emby.ServerInfo{
 		Hostname: config.Server.Hostname,

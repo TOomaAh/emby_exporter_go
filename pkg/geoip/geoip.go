@@ -22,13 +22,19 @@ type GeoIP interface {
 	Close()
 }
 
-func InitGeoIPDatabase(enable bool) (GeoIP, error) {
+func InitGeoIPDatabase(enable bool, logger logger.Interface) (GeoIP, error) {
 	switch enable {
 	case true:
 		file := os.Getenv("GEOIP_DB")
 		if file == "" {
 			file = "geoip.mmdb"
 		}
+
+		if _, err := os.Stat(file); os.IsNotExist(err) {
+			logger.Error("GeoIP database file does not exist: %s, disable geoip", file)
+			return newNoGeoIP(), nil
+		}
+
 		geoIP = newGeoIP(file)
 		return geoIP, nil
 	default:
