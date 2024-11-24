@@ -2,7 +2,7 @@
 
 An exporter for emby that exports Emby's main metrics.
 
-## /!\ LAST UPDATE /!\
+## /!\ NO MORE UPDATE (after 1.0.12) /!\
 
 This project will no longer be maintained. I no longer use emby because of the 25 device limit, which I have unfortunately exceeded. 
 
