@@ -49,15 +49,17 @@ func Run(config *conf.Config, logger logger.Interface) {
 		Token:    config.Server.Token,
 	}, logger)
 	errorPing := embyServer.Ping()
+
 	if errorPing != nil {
 		logger.Error("Server is not reachable")
+		os.Exit(-1)
 	}
 
-	activityCollector := metrics.NewActivityCollector(embyServer)
-	alertCollector := metrics.NewAlertCollector(embyServer)
-	libraryCollector := metrics.NewLibraryCollector(embyServer)
-	sessionCollector := metrics.NewSessionCollector(embyServer)
-	systemInfoCollector := metrics.NewSystemInfoCollector(embyServer)
+	activityCollector := metrics.NewActivityCollector(embyServer, logger)
+	alertCollector := metrics.NewAlertCollector(embyServer, logger)
+	libraryCollector := metrics.NewLibraryCollector(embyServer, logger)
+	sessionCollector := metrics.NewSessionCollector(embyServer, logger)
+	systemInfoCollector := metrics.NewSystemInfoCollector(embyServer, logger)
 
 	newRegistry := prometheus.NewRegistry()
 

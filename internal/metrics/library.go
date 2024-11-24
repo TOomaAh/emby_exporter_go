@@ -17,10 +17,11 @@ type LibraryCollector struct {
 	logger  logger.Interface
 }
 
-func NewLibraryCollector(server *emby.Server) *LibraryCollector {
+func NewLibraryCollector(server *emby.Server, logger logger.Interface) *LibraryCollector {
 	return &LibraryCollector{
 		server:  server,
 		library: prometheus.NewDesc("emby_media_item", "All Media Item", libraryValue, nil),
+		logger:  logger,
 	}
 }
 

@@ -46,12 +46,13 @@ type SessionCollector struct {
 	logger           logger.Interface
 }
 
-func NewSessionCollector(server *emby.Server) *SessionCollector {
+func NewSessionCollector(server *emby.Server, logger logger.Interface) *SessionCollector {
 	return &SessionCollector{
 		server:           server,
 		sessions:         prometheus.NewDesc("emby_sessions", "All session", sessionsValue, nil),
-		sessionsBitrates: prometheus.NewDesc("emby_sessions_bitrate", "Session Bitrate in KO", sessionsBitrates, nil),
+		sessionsBitrates: prometheus.NewDesc("emby_sessions_bitrate", "Session Bitrate in kilobits", sessionsBitrates, nil),
 		count:            prometheus.NewDesc("emby_sessions_count", "Session Count", []string{}, nil),
+		logger:           logger,
 	}
 }
 
@@ -68,33 +69,24 @@ func (c *SessionCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	db := geoip.GetGeoIPDatabase()
-
-	var (
-		tvshow      string = ""
-		season      string = ""
-		city        string = ""
-		region      string = ""
-		countryCode string = ""
-		latitude    float64
-		longitude   float64
-	)
-
 	count := 0
+
 	for i, session := range *sessions {
 		if !session.HasPlayMethod() {
 			continue
 		}
 
 		count++
+		tvshow, season := "", ""
 		if session.IsEpisode() {
 			tvshow = session.NowPlayingItem.SeriesName
 			season = session.NowPlayingItem.SeasonName
 		}
 
-		latitude, longitude = db.GetLocation(session.RemoteEndPoint)
-		city = db.GetCity(session.RemoteEndPoint)
-		region = db.GetRegion(session.RemoteEndPoint)
-		countryCode = db.GetCountryCode(session.RemoteEndPoint)
+		latitude, longitude := db.GetLocation(session.RemoteEndPoint)
+		city := db.GetCity(session.RemoteEndPoint)
+		region := db.GetRegion(session.RemoteEndPoint)
+		countryCode := db.GetCountryCode(session.RemoteEndPoint)
 
 		ch <- prometheus.MustNewConstMetric(
 			c.sessions, prometheus.GaugeValue,
@@ -133,5 +125,4 @@ func (c *SessionCollector) Collect(ch chan<- prometheus.Metric) {
 		c.count,
 		prometheus.GaugeValue,
 		float64(count))
-
 }

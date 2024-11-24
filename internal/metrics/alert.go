@@ -26,10 +26,11 @@ type AlertCollector struct {
 	logger logger.Interface
 }
 
-func NewAlertCollector(server *emby.Server) *AlertCollector {
+func NewAlertCollector(server *emby.Server, logger logger.Interface) *AlertCollector {
 	return &AlertCollector{
 		server: server,
 		alert:  prometheus.NewDesc("emby_alert", "Alert log", alertValue, nil),
+		logger: logger,
 	}
 }
 

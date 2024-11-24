@@ -23,15 +23,12 @@ type GeoIP interface {
 }
 
 func InitGeoIPDatabase(enable bool) (GeoIP, error) {
-
 	switch enable {
 	case true:
 		file := os.Getenv("GEOIP_DB")
-
 		if file == "" {
 			file = "geoip.mmdb"
 		}
-
 		geoIP = newGeoIP(file)
 		return geoIP, nil
 	default:

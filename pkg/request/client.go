@@ -28,7 +28,6 @@ var (
 )
 
 func NewClient(baseURL string, apiKey string) (*Client, error) {
-
 	parsed, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, ErrorInvalidURL
@@ -48,7 +47,6 @@ func NewClient(baseURL string, apiKey string) (*Client, error) {
 			Timeout: 10 * time.Second,
 		},
 	}, nil
-
 }
 
 func (c *Client) NewRequest(method, path string, body io.Reader) (*http.Request, error) {
@@ -56,8 +54,7 @@ func (c *Client) NewRequest(method, path string, body io.Reader) (*http.Request,
 	if err != nil {
 		return nil, ErrorCannotParsePath
 	}
-	request := c.BaseURL.ResolveReference(u)
-	req, err := http.NewRequest(method, request.String(), body)
+	req, err := http.NewRequest(method, u.String(), body)
 	if err != nil {
 		return nil, ErrorInvalidRequest
 	}
@@ -67,10 +64,10 @@ func (c *Client) NewRequest(method, path string, body io.Reader) (*http.Request,
 
 func (c *Client) Do(req *http.Request, v interface{}) error {
 	resp, err := c.httpClient.Do(req)
-
 	if err != nil {
-		return nil
+		return err
 	}
+	defer resp.Body.Close()
 
 	switch resp.StatusCode {
 	case http.StatusNotFound:
@@ -83,15 +80,11 @@ func (c *Client) Do(req *http.Request, v interface{}) error {
 		return Error403Forbidden
 	}
 
-	defer resp.Body.Close()
-
 	if v != nil {
 		body, err := io.ReadAll(resp.Body)
-
 		if err != nil {
 			return ErrorCannotReadBody
 		}
-
 		return json.Unmarshal(body, v)
 	}
 	return nil

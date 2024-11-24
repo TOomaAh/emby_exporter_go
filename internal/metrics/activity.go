@@ -25,10 +25,11 @@ type ActivityCollector struct {
 	logger   logger.Interface
 }
 
-func NewActivityCollector(server *emby.Server) *ActivityCollector {
+func NewActivityCollector(server *emby.Server, logger logger.Interface) *ActivityCollector {
 	return &ActivityCollector{
 		server:   server,
 		activity: prometheus.NewDesc("emby_activity", "Activity log", activityValue, nil),
+		logger:   logger,
 	}
 }
 

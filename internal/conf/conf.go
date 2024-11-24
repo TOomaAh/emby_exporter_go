@@ -41,6 +41,19 @@ func NewConfig(path string) (*Config, error) {
 	decoder := yaml.NewDecoder(file)
 	err = decoder.Decode(&config)
 
+	if config.Server.Hostname == "" {
+		config.Server.Hostname = "http://localhost"
+	} else {
+		// Add http:// if not present
+		if len(config.Server.Hostname) < 7 || config.Server.Hostname[:7] != "http://" {
+			config.Server.Hostname = "http://" + config.Server.Hostname
+		}
+	}
+
+	if config.Server.Port == "" {
+		config.Server.Port = "8096"
+	}
+
 	if err != nil {
 		fmt.Printf("Cannot decode config file: %s", err)
 		os.Exit(-1)
