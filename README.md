@@ -21,9 +21,9 @@ You can access the metrics on the following url:
 
 ![Dashboard example](https://github.com/TOomaAh/emby_exporter_go/blob/main/example/dashboard_grafana.png)
 
-![Dashboard link](https://github.com/TOomaAh/emby_exporter_go/blob/main/example/Emby.Dashboard-1703419734858.json)
+[Dashboard link](https://github.com/TOomaAh/emby_exporter_go/blob/main/example/Emby.Dashboard-1703419734858.json)
 
-thanx to [jaycedk](https://github.com/jaycedk) for the dashboard
+I thank jay[jaycedk](https://github.com/jaycedk) for the dashboard (it's his)
 
 
 ## For build this project. It's simple
