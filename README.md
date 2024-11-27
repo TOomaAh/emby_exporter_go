@@ -23,7 +23,7 @@ You can access the metrics on the following url:
 
 [Dashboard link](https://github.com/TOomaAh/emby_exporter_go/blob/main/example/Emby.Dashboard-1703419734858.json)
 
-I thank jay[jaycedk](https://github.com/jaycedk) for the dashboard (it's his)
+I thank [jaycedk](https://github.com/jaycedk) for the dashboard (it's his)
 
 
 ## For build this project. It's simple
