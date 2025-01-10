@@ -47,7 +47,7 @@ func NewConfig(path string) (*Config, error) {
 		os.Exit(-1)
 	}
 
-	if len(config.Server.Hostname) < 7 || config.Server.Hostname[:7] != "http://" {
+	if len(config.Server.Hostname) < 7 || config.Server.Hostname[:7] != "http://" || config.Server.Hostname[:8] != "https://" {
 		config.Server.Hostname = "http://" + config.Server.Hostname
 	}
 
