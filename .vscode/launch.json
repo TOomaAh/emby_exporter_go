@@ -1,0 +1,18 @@
+{
+    // Utilisez IntelliSense pour en savoir plus sur les attributs possibles.
+    // Pointez pour afficher la description des attributs existants.
+    // Pour plus d'informations, visitez : https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "go",
+            "request": "launch",
+            "name": "Launch file",
+            "mode": "auto",
+            // main.go in cmd/app/main.go
+            "program": "${workspaceFolder}/cmd/emby_exporter_go/main.go",
+            // set workspace folder is the root of the project
+            "cwd": "${workspaceFolder}",
+        }
+    ]
+}

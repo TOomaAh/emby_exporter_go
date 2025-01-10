@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/signal"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -23,24 +22,11 @@ func logRequest(handler http.Handler) http.Handler {
 	})
 }
 
-func Run(config *conf.Config, logger logger.Interface) {
+func HealthCheck(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
 
-	db, err := geoip.InitGeoIPDatabase(config.Options.GeoIP)
-	if err != nil {
-		logger.Error("GeoIP database is not initialized")
-		os.Exit(-1)
-	}
-	db.SetLogger(logger)
-
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt)
-
-	go func() {
-		<-interrupt
-		defer db.Close()
-		logger.Info("Stopping server...")
-		os.Exit(0)
-	}()
+func Run(config *conf.Config, geoIp geoip.GeoIP, logger logger.Interface) {
 
 	embyServer := emby.NewServer(&emby.ServerInfo{
 		Hostname: config.Server.Hostname,
@@ -48,16 +34,19 @@ func Run(config *conf.Config, logger logger.Interface) {
 		UserID:   config.Server.UserID,
 		Token:    config.Server.Token,
 	}, logger)
+
 	errorPing := embyServer.Ping()
+
 	if errorPing != nil {
 		logger.Error("Server is not reachable")
+		os.Exit(-1)
 	}
 
-	activityCollector := metrics.NewActivityCollector(embyServer)
-	alertCollector := metrics.NewAlertCollector(embyServer)
-	libraryCollector := metrics.NewLibraryCollector(embyServer)
-	sessionCollector := metrics.NewSessionCollector(embyServer)
-	systemInfoCollector := metrics.NewSystemInfoCollector(embyServer)
+	activityCollector := metrics.NewActivityCollector(embyServer, logger)
+	alertCollector := metrics.NewAlertCollector(embyServer, logger)
+	libraryCollector := metrics.NewLibraryCollector(embyServer, logger)
+	sessionCollector := metrics.NewSessionCollector(embyServer, geoIp, logger)
+	systemInfoCollector := metrics.NewSystemInfoCollector(embyServer, logger)
 
 	newRegistry := prometheus.NewRegistry()
 
