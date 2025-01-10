@@ -27,6 +27,6 @@ jobs:
         with:
           version: '~> v2'
           args: release --clean
-          workdir: ./cmd/app
+          workdir: ./cmd/emby_exporter_go
         env:
           GITHUB_TOKEN: ${{ secrets.GO_RELEASER_GITHUB_TOKEN }}
