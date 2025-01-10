@@ -23,10 +23,11 @@ type SystemInfoCollector struct {
 	logger     logger.Interface
 }
 
-func NewSystemInfoCollector(server *emby.Server) *SystemInfoCollector {
+func NewSystemInfoCollector(server *emby.Server, logger logger.Interface) *SystemInfoCollector {
 	return &SystemInfoCollector{
 		server:     server,
 		serverInfo: prometheus.NewDesc("emby_system_info", "All Emby Info", serverInfoValue, nil),
+		logger:     logger,
 	}
 }
 
@@ -42,21 +43,20 @@ func (c *SystemInfoCollector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
-	if systemInfo.WanAddress == "" {
-		systemInfo.WanAddress = "N/A"
-	}
-
-	if systemInfo.LocalAddress == "" {
-		systemInfo.LocalAddress = "N/A"
-	}
-
 	ch <- prometheus.MustNewConstMetric(
 		c.serverInfo,
 		prometheus.GaugeValue, 1,
 		systemInfo.Version,
-		systemInfo.WanAddress,
-		systemInfo.LocalAddress,
+		normalizeAddress(systemInfo.WanAddress),
+		normalizeAddress(systemInfo.LocalAddress),
 		strconv.FormatBool(systemInfo.HasUpdateAvailable),
 		strconv.FormatBool(systemInfo.HasPendingRestart),
 	)
+}
+
+func normalizeAddress(address string) string {
+	if address == "" {
+		return "N/A"
+	}
+	return address
 }

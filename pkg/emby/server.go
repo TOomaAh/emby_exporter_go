@@ -39,7 +39,7 @@ type ServerInfo struct {
 }
 
 func NewServer(s *ServerInfo, logger logger.Interface) *Server {
-	if s.Hostname == "" {
+	if s.Hostname == "" || s.Hostname == "http://" {
 		s.Hostname = "http://localhost"
 	}
 
