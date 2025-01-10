@@ -10,7 +10,7 @@
             "name": "Launch file",
             "mode": "auto",
             // main.go in cmd/app/main.go
-            "program": "${workspaceFolder}/cmd/app/main.go",
+            "program": "${workspaceFolder}/cmd/emby_exporter_go/main.go",
             // set workspace folder is the root of the project
             "cwd": "${workspaceFolder}",
         }

@@ -44,15 +44,17 @@ type SessionCollector struct {
 	count            *prometheus.Desc
 	sessionsBitrates *prometheus.Desc
 	logger           logger.Interface
+	geoip            geoip.GeoIP
 }
 
-func NewSessionCollector(server *emby.Server, logger logger.Interface) *SessionCollector {
+func NewSessionCollector(server *emby.Server, geoIP geoip.GeoIP, logger logger.Interface) prometheus.Collector {
 	return &SessionCollector{
 		server:           server,
 		sessions:         prometheus.NewDesc("emby_sessions", "All session", sessionsValue, nil),
 		sessionsBitrates: prometheus.NewDesc("emby_sessions_bitrate", "Session Bitrate in kilobits", sessionsBitrates, nil),
 		count:            prometheus.NewDesc("emby_sessions_count", "Session Count", []string{}, nil),
 		logger:           logger,
+		geoip:            geoIP,
 	}
 }
 
@@ -68,7 +70,6 @@ func (c *SessionCollector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
-	db := geoip.GetGeoIPDatabase()
 	count := 0
 
 	for i, session := range *sessions {
@@ -83,10 +84,10 @@ func (c *SessionCollector) Collect(ch chan<- prometheus.Metric) {
 			season = session.NowPlayingItem.SeasonName
 		}
 
-		latitude, longitude := db.GetLocation(session.RemoteEndPoint)
-		city := db.GetCity(session.RemoteEndPoint)
-		region := db.GetRegion(session.RemoteEndPoint)
-		countryCode := db.GetCountryCode(session.RemoteEndPoint)
+		latitude, longitude := c.geoip.GetLocation(session.RemoteEndPoint)
+		city := c.geoip.GetCity(session.RemoteEndPoint)
+		region := c.geoip.GetRegion(session.RemoteEndPoint)
+		countryCode := c.geoip.GetCountryCode(session.RemoteEndPoint)
 
 		ch <- prometheus.MustNewConstMetric(
 			c.sessions, prometheus.GaugeValue,

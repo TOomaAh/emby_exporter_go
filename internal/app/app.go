@@ -4,6 +4,7 @@ import (
 	"TOomaAh/emby_exporter_go/internal/conf"
 	"TOomaAh/emby_exporter_go/internal/metrics"
 	"TOomaAh/emby_exporter_go/pkg/emby"
+	"TOomaAh/emby_exporter_go/pkg/geoip"
 	"TOomaAh/emby_exporter_go/pkg/logger"
 	"fmt"
 	"net/http"
@@ -21,7 +22,11 @@ func logRequest(handler http.Handler) http.Handler {
 	})
 }
 
-func Run(config *conf.Config, logger logger.Interface) {
+func HealthCheck(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
+func Run(config *conf.Config, geoIp geoip.GeoIP, logger logger.Interface) {
 
 	embyServer := emby.NewServer(&emby.ServerInfo{
 		Hostname: config.Server.Hostname,
@@ -29,6 +34,7 @@ func Run(config *conf.Config, logger logger.Interface) {
 		UserID:   config.Server.UserID,
 		Token:    config.Server.Token,
 	}, logger)
+
 	errorPing := embyServer.Ping()
 
 	if errorPing != nil {
@@ -39,7 +45,7 @@ func Run(config *conf.Config, logger logger.Interface) {
 	activityCollector := metrics.NewActivityCollector(embyServer, logger)
 	alertCollector := metrics.NewAlertCollector(embyServer, logger)
 	libraryCollector := metrics.NewLibraryCollector(embyServer, logger)
-	sessionCollector := metrics.NewSessionCollector(embyServer, logger)
+	sessionCollector := metrics.NewSessionCollector(embyServer, geoIp, logger)
 	systemInfoCollector := metrics.NewSystemInfoCollector(embyServer, logger)
 
 	newRegistry := prometheus.NewRegistry()

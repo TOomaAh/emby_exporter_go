@@ -21,6 +21,7 @@ var (
 	ErrorCannotReadBody  = errors.New("cannot read body")
 	ErrorInvalidURL      = errors.New("invalid URL")
 	ErrorInvalidRequest  = errors.New("invalid request")
+	Error400BadRequest   = errors.New("400 bad request")
 	Error404NotFound     = errors.New("404 not found")
 	Error500Internal     = errors.New("500 internal server error")
 	Error401Unauthorized = errors.New("401 unauthorized")
@@ -70,6 +71,8 @@ func (c *Client) Do(req *http.Request, v interface{}) error {
 	defer resp.Body.Close()
 
 	switch resp.StatusCode {
+	case http.StatusBadRequest:
+		return Error400BadRequest
 	case http.StatusNotFound:
 		return Error404NotFound
 	case http.StatusInternalServerError:
