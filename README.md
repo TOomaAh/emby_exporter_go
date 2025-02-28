@@ -2,13 +2,15 @@
 
 An exporter for emby that exports Emby's main metrics.
 
-## /!\ NO MORE UPDATE (after 1.0.12) /!\
+## /!\ IMPORTANT /!\
 
-This project may no longer be maintained. I no longer use emby because of the 25 device limit, which I have unfortunately exceeded. 
+This project may no longer be maintained. I no longer use emby because of the 25-device limit, which I have unfortunately exceeded. 
 
-Not having found a solution with the Emby team and not having the means to take out a subscription just to extend the limit, I was obliged to stop using emby.
+As I couldn't find a solution with the Emby team and couldn't afford to take out a subscription just to extend the limit, I was forced to stop using emby.
 
-If you ever want to add features, I invite you to create a fork of the project and either continue it on your own or make a PR that I'll validate if I can.
+If you ever want to add features, I invite you to create a fork of the project and either continue it on your own, or make a PR that I'll validate if I can.
+
+I will continue to respond to issues and try to solve your problems or improve it as much as possible.
 
 Thank you for your understanding.
 
