@@ -3,10 +3,12 @@ package conf
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 )
 
+// Server holds the Emby server configuration.
 type Server struct {
 	Hostname string `yaml:"url" default:"localhost"`
 	Port     string `yaml:"port" default:"8096"`
@@ -14,48 +16,51 @@ type Server struct {
 	UserID   string `yaml:"userID"`
 }
 
+// Config holds the overall configuration.
 type Config struct {
 	Exporter struct {
 		Port int `yaml:"port" default:"9210"`
 	} `yaml:"exporter,omitempty"`
 	Server  Server `yaml:"server,omitempty"`
 	Options struct {
-		GeoIP       bool `yaml:"geoip" default:"false"`
-		HealthCheck bool `yaml:"healthcheck" default:"false"`
+		RetryInterval int  `yaml:"retryInterval" default:"10"`
+		GeoIP         bool `yaml:"geoip" default:"false"`
+		HealthCheck   bool `yaml:"healthcheck" default:"false"`
 	} `yaml:"options,omitempty"`
 }
 
+// NewConfig reads the YAML configuration from the specified path and returns a Config instance.
+// If no path is provided, it defaults to "./config.yml". It also applies default values for missing fields.
 func NewConfig(path string) (*Config, error) {
 	if path == "" {
 		path = "./config.yml"
 	}
 	file, err := os.Open(path)
 	if err != nil {
-		fmt.Printf("cannot open configuration file %s\n", path)
-		os.Exit(-1)
+		return nil, fmt.Errorf("cannot open configuration file %s: %w", path, err)
 	}
-
 	defer file.Close()
 
-	var config Config
-
+	var cfg Config
 	decoder := yaml.NewDecoder(file)
-	err = decoder.Decode(&config)
-
-	if err != nil {
-		fmt.Printf("Cannot decode config file: %s", err)
-		os.Exit(-1)
+	if err := decoder.Decode(&cfg); err != nil {
+		return nil, fmt.Errorf("cannot decode config file: %w", err)
 	}
 
-	if len(config.Server.Hostname) < 7 || (config.Server.Hostname[:7] != "http://" && config.Server.Hostname[:8] != "https://") {
-		config.Server.Hostname = "http://" + config.Server.Hostname
+	// Ensure the server hostname starts with "http://" or "https://".
+	if cfg.Server.Hostname != "" && !hasHTTPPrefix(cfg.Server.Hostname) {
+		cfg.Server.Hostname = "http://" + cfg.Server.Hostname
 	}
 
-	if err != nil {
-		fmt.Printf("Cannot decode config file: %s", err)
-		os.Exit(-1)
+	// Set default RetryInterval if not provided.
+	if cfg.Options.RetryInterval == 0 {
+		cfg.Options.RetryInterval = 10
 	}
 
-	return &config, nil
+	return &cfg, nil
+}
 
+// hasHTTPPrefix checks if the provided hostname starts with "http://" or "https://".
+func hasHTTPPrefix(hostname string) bool {
+	return strings.HasPrefix(hostname, "http://") || strings.HasPrefix(hostname, "https://")
 }

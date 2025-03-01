@@ -4,6 +4,7 @@ import (
 	"TOomaAh/emby_exporter_go/internal/entity"
 	"TOomaAh/emby_exporter_go/pkg/logger"
 	"TOomaAh/emby_exporter_go/pkg/request"
+	"errors"
 	"net/http"
 	"os"
 )
@@ -28,6 +29,9 @@ const (
 type Server struct {
 	client *request.Client
 	UserID string
+
+	IsRecheable bool
+
 	Logger logger.Interface
 }
 
@@ -65,26 +69,33 @@ func NewServer(s *ServerInfo, logger logger.Interface) *Server {
 	}
 
 	server := &Server{
-		UserID: s.UserID,
-		client: client,
-		Logger: logger,
+		UserID:      s.UserID,
+		client:      client,
+		IsRecheable: false,
+		Logger:      logger,
 	}
 
 	return server
 }
 
 func (s Server) GetSessions() (*[]entity.Sessions, error) {
+
 	var sessions []entity.Sessions
 
-	request, err := s.client.NewRequest(http.MethodGet, sessionPath, nil)
+	req, err := s.client.NewRequest(http.MethodGet, sessionPath, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.client.Do(request, &sessions)
+	err = s.client.Do(req, &sessions)
 
 	if err != nil {
+
+		if !errors.Is(err, request.ErrorCannotReadBody) {
+			s.IsRecheable = false
+		}
+
 		return nil, err
 	}
 
@@ -93,15 +104,20 @@ func (s Server) GetSessions() (*[]entity.Sessions, error) {
 
 func (s *Server) GetActivity() (*entity.Activity, error) {
 	var activity entity.Activity
-	request, err := s.client.NewRequest(http.MethodGet, activityPath, nil)
+	req, err := s.client.NewRequest(http.MethodGet, activityPath, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.client.Do(request, &activity)
+	err = s.client.Do(req, &activity)
 
 	if err != nil {
+
+		if !errors.Is(err, request.ErrorCannotReadBody) {
+			s.IsRecheable = false
+		}
+
 		return nil, err
 	}
 
@@ -109,15 +125,20 @@ func (s *Server) GetActivity() (*entity.Activity, error) {
 }
 
 func (s *Server) Ping() error {
-	request, err := s.client.NewRequest(http.MethodGet, pingPath, nil)
+	req, err := s.client.NewRequest(http.MethodGet, pingPath, nil)
 
 	if err != nil {
 		return err
 	}
 
-	err = s.client.Do(request, nil)
+	err = s.client.Do(req, nil)
 
 	if err != nil {
+
+		if !errors.Is(err, request.ErrorCannotReadBody) {
+			s.IsRecheable = false
+		}
+
 		return err
 	}
 
@@ -127,15 +148,20 @@ func (s *Server) Ping() error {
 func (s *Server) GetLibrary() (*entity.LibraryInfo, error) {
 	var library entity.LibraryInfo
 
-	request, err := s.client.NewRequest(http.MethodGet, libraryPath, nil)
+	req, err := s.client.NewRequest(http.MethodGet, libraryPath, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.client.Do(request, &library)
+	err = s.client.Do(req, &library)
 
 	if err != nil {
+
+		if !errors.Is(err, request.ErrorCannotReadBody) {
+			s.IsRecheable = false
+		}
+
 		return nil, err
 	}
 
@@ -144,15 +170,20 @@ func (s *Server) GetLibrary() (*entity.LibraryInfo, error) {
 
 func (s *Server) GetServerInfo() (*entity.SystemInfo, error) {
 	var systemInfo entity.SystemInfo
-	request, err := s.client.NewRequest(http.MethodGet, systemInfoPath, nil)
+	req, err := s.client.NewRequest(http.MethodGet, systemInfoPath, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.client.Do(request, &systemInfo)
+	err = s.client.Do(req, &systemInfo)
 
 	if err != nil {
+
+		if !errors.Is(err, request.ErrorCannotReadBody) {
+			s.IsRecheable = false
+		}
+
 		return nil, err
 	}
 
@@ -163,7 +194,7 @@ func (s *Server) GetLibrarySize(itemID, contentType string) (int, error) {
 	var librarySize int
 	var library entity.Library
 
-	request, err := s.client.NewRequest(http.MethodGet, "/Users/"+
+	req, err := s.client.NewRequest(http.MethodGet, "/Users/"+
 		s.UserID+
 		"/Items?IncludeItemTypes=Movie&Recursive=true&Fields=BasicSyncInfo&EnableImageTypes=Primary&ParentId="+
 		itemID+"&Limit=1&IncludeItemTypes="+includeType[contentType], nil)
@@ -172,9 +203,14 @@ func (s *Server) GetLibrarySize(itemID, contentType string) (int, error) {
 		return 0, err
 	}
 
-	err = s.client.Do(request, &library)
+	err = s.client.Do(req, &library)
 
 	if err != nil {
+
+		if !errors.Is(err, request.ErrorCannotReadBody) {
+			s.IsRecheable = false
+		}
+
 		return 0, err
 	}
 
@@ -185,15 +221,21 @@ func (s *Server) GetLibrarySize(itemID, contentType string) (int, error) {
 
 func (s *Server) GetAlerts() (*entity.Alert, error) {
 	var alert entity.Alert
-	request, err := s.client.NewRequest(http.MethodGet, systemAlertPath, nil)
+	req, err := s.client.NewRequest(http.MethodGet, systemAlertPath, nil)
 
 	if err != nil {
+
 		return nil, err
 	}
 
-	err = s.client.Do(request, &alert)
+	err = s.client.Do(req, &alert)
 
 	if err != nil {
+
+		if !errors.Is(err, request.ErrorCannotReadBody) {
+			s.IsRecheable = false
+		}
+
 		return nil, err
 	}
 	return &alert, nil
