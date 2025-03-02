@@ -6,8 +6,11 @@ on:
       - dev
       - v*
       - latest
+    tags:
+      - '*'
   pull_request:
     branches:
+      - dev
       - v*
       - latest
 
@@ -25,11 +28,27 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # Étape pour calculer les tags d'image
+      - name: Définir les tags d'image
+        id: set_tags
+        shell: bash
+        run: |
+          TAGS=""
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" && "${{ github.event.pull_request.base.ref }}" == "dev" ]]; then
+            TAGS="unstable"
+          elif [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            TAGS="${GITHUB_REF#refs/tags/} latest"
+          fi
+          echo "tags=$TAGS" >> $GITHUB_OUTPUT
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: bagul/goemby_exporter
+          tags: ${{ steps.set_tags.outputs.tags }}
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -42,18 +61,10 @@ jobs:
       - name: Download MaxMind DB
         run: |
           LICENSE_KEY=${{ secrets.MAXMIND_LICENSE_KEY }}
-          ACCOUNT_ID=${{secrets.MAXMIND_ACCOUNT_ID}}
-          
-          # Utilisez curl pour télécharger la base de données depuis l'URL avec la clé de licence.
-          curl -o maxmind-db.tar.gz  -O -J -L -u ${ACCOUNT_ID}:${LICENSE_KEY} "https://download.maxmind.com/geoip/databases/GeoLite2-City/download?suffix=tar.gz"
-          
-          # Décompressez le fichier tar.gz (assurez-vous que vous avez `tar` installé).
+          ACCOUNT_ID=${{ secrets.MAXMIND_ACCOUNT_ID }}
+          curl -o maxmind-db.tar.gz -O -J -L -u ${ACCOUNT_ID}:${LICENSE_KEY} "https://download.maxmind.com/geoip/databases/GeoLite2-City/download?suffix=tar.gz"
           tar zxvf maxmind-db.tar.gz
-          
-          # Déplacez le fichier .mmdb extrait à la racine du projet.
           mv GeoLite2-City_*/GeoLite2-City.mmdb geoip.mmdb
-          
-          # Nettoyez les fichiers temporaires.
           rm -rf GeoLite2-City_* maxmind-db.tar.gz
         env:
           LICENSE_KEY: ${{ secrets.MAXMIND_LICENSE_KEY }}
@@ -95,6 +106,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: bagul/goemby_exporter
+          tags: ${{ steps.set_tags.outputs.tags }}
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -114,4 +126,3 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           docker buildx imagetools inspect bagul/goemby_exporter:${{ steps.meta.outputs.version }}
-
