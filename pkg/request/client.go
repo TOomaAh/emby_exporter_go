@@ -18,8 +18,10 @@ type Client struct {
 
 var (
 	ErrorCannotParsePath = errors.New("cannot parse path")
+	ErrorCannotReadBody  = errors.New("cannot read body")
 	ErrorInvalidURL      = errors.New("invalid URL")
 	ErrorInvalidRequest  = errors.New("invalid request")
+	Error400BadRequest   = errors.New("400 bad request")
 	Error404NotFound     = errors.New("404 not found")
 	Error500Internal     = errors.New("500 internal server error")
 	Error401Unauthorized = errors.New("401 unauthorized")
@@ -27,10 +29,9 @@ var (
 )
 
 func NewClient(baseURL string, apiKey string) (*Client, error) {
-
 	parsed, err := url.Parse(baseURL)
 	if err != nil {
-		return nil, err
+		return nil, ErrorInvalidURL
 	}
 
 	headers := http.Header{}
@@ -47,18 +48,16 @@ func NewClient(baseURL string, apiKey string) (*Client, error) {
 			Timeout: 10 * time.Second,
 		},
 	}, nil
-
 }
 
 func (c *Client) NewRequest(method, path string, body io.Reader) (*http.Request, error) {
 	u, err := c.BaseURL.Parse(path)
 	if err != nil {
-		return nil, err
+		return nil, ErrorCannotParsePath
 	}
-	request := c.BaseURL.ResolveReference(u)
-	req, err := http.NewRequest(method, request.String(), body)
+	req, err := http.NewRequest(method, u.String(), body)
 	if err != nil {
-		return nil, err
+		return nil, ErrorInvalidRequest
 	}
 	req.Header = c.headers
 	return req, nil
@@ -66,20 +65,29 @@ func (c *Client) NewRequest(method, path string, body io.Reader) (*http.Request,
 
 func (c *Client) Do(req *http.Request, v interface{}) error {
 	resp, err := c.httpClient.Do(req)
-
 	if err != nil {
-		return nil
+		return err
 	}
-
 	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusBadRequest:
+		return Error400BadRequest
+	case http.StatusNotFound:
+		return Error404NotFound
+	case http.StatusInternalServerError:
+		return Error500Internal
+	case http.StatusUnauthorized:
+		return Error401Unauthorized
+	case http.StatusForbidden:
+		return Error403Forbidden
+	}
 
 	if v != nil {
 		body, err := io.ReadAll(resp.Body)
-
 		if err != nil {
-			return err
+			return ErrorCannotReadBody
 		}
-
 		return json.Unmarshal(body, v)
 	}
 	return nil

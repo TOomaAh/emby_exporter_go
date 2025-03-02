@@ -25,8 +25,8 @@ jobs:
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@master
         with:
-          version: latest
-          args: release --rm-dist
-          workdir: ./cmd/app
+          version: '~> v2'
+          args: release --clean
+          workdir: ./cmd/emby_exporter_go
         env:
           GITHUB_TOKEN: ${{ secrets.GO_RELEASER_GITHUB_TOKEN }}

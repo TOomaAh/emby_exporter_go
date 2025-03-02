@@ -2,6 +2,31 @@
 
 An exporter for emby that exports Emby's main metrics.
 
+## /!\ IMPORTANT /!\
+
+This project may no longer be maintained. I no longer use emby because of the 25-device limit, which I have unfortunately exceeded. 
+
+As I couldn't find a solution with the Emby team and couldn't afford to take out a subscription just to extend the limit, I was forced to stop using emby.
+
+If you ever want to add features, I invite you to create a fork of the project and either continue it on your own, or make a PR that I'll validate if I can.
+
+I will continue to respond to issues and try to solve your problems or improve it as much as possible.
+
+Thank you for your understanding.
+
+### Get metrics
+
+You can access the metrics on the following url:
+`http://ip:9210/metrics`
+
+## Grafana Dashboard
+
+![Dashboard example](https://github.com/TOomaAh/emby_exporter_go/blob/main/example/dashboard_grafana.png)
+
+[Dashboard link](https://github.com/TOomaAh/emby_exporter_go/blob/main/example/Emby.Dashboard-1703419734858.json)
+
+I thank [jaycedk](https://github.com/jaycedk) for the dashboard (it's his)
+
 
 ## For build this project. It's simple
 `go get &&
@@ -46,15 +71,4 @@ options: # optional
 3. Go to the profile page
 4. In the url, you will find your userID
     (ex: http://localhost:8096/web/index.html#!/settings/profile.html?userId=<YOUR_USER_ID>&serverId=xxxxx)
-    
-### Get metrics
 
-You can access the metrics on the following url:
-`http://ip:9210/metrics`
-
-## Grafana Dashboard
-(I will share my dashboard later)
-
-![Dashboard example](https://github.com/TOomaAh/emby_exporter_go/blob/main/example/dashboard_grafana.png)
-
-This project will end up in a docker to facilitate its use.
