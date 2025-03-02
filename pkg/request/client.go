@@ -6,14 +6,13 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"time"
 )
 
-type Client struct {
-	BaseURL    *url.URL
-	APIKey     string
-	headers    http.Header
-	httpClient *http.Client
+type Client interface {
+	GetBaseURL() *url.URL
+	ApplyAuthentication(r *http.Request) error
+	SetHeaders(headers http.Header)
+	GetClient() *http.Client
 }
 
 var (
@@ -28,30 +27,18 @@ var (
 	Error403Forbidden    = errors.New("403 forbidden")
 )
 
-func NewClient(baseURL string, apiKey string) (*Client, error) {
-	parsed, err := url.Parse(baseURL)
-	if err != nil {
-		return nil, ErrorInvalidURL
-	}
-
-	headers := http.Header{}
-	headers.Set("Accept", "application/json")
-	headers.Set("Content-Type", "application/json")
-	headers.Set("User-Agent", "emby_exporter_go")
-	headers.Set("X-Emby-Token", apiKey)
-
-	return &Client{
-		BaseURL: parsed,
-		APIKey:  apiKey,
-		headers: headers,
-		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
-		},
-	}, nil
+type RequestManager struct {
+	client Client
 }
 
-func (c *Client) NewRequest(method, path string, body io.Reader) (*http.Request, error) {
-	u, err := c.BaseURL.Parse(path)
+func NewRequestManager(c Client) *RequestManager {
+	return &RequestManager{
+		client: c,
+	}
+}
+
+func (r *RequestManager) NewRequest(method string, path string, body io.Reader) (*http.Request, error) {
+	u, err := r.client.GetBaseURL().Parse(path)
 	if err != nil {
 		return nil, ErrorCannotParsePath
 	}
@@ -59,18 +46,13 @@ func (c *Client) NewRequest(method, path string, body io.Reader) (*http.Request,
 	if err != nil {
 		return nil, ErrorInvalidRequest
 	}
-	req.Header = c.headers
+	r.client.SetHeaders(req.Header)
+	r.client.ApplyAuthentication(req)
 	return req, nil
 }
 
-func (c *Client) Do(req *http.Request, v interface{}) error {
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	switch resp.StatusCode {
+func parseStatusCode(code int) error {
+	switch code {
 	case http.StatusBadRequest:
 		return Error400BadRequest
 	case http.StatusNotFound:
@@ -82,6 +64,19 @@ func (c *Client) Do(req *http.Request, v interface{}) error {
 	case http.StatusForbidden:
 		return Error403Forbidden
 	}
+	return nil
+}
+
+func (r *RequestManager) Do(req *http.Request, v interface{}) error {
+	resp, err := r.client.GetClient().Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if err := parseStatusCode(resp.StatusCode); err != nil {
+		return err
+	}
 
 	if v != nil {
 		body, err := io.ReadAll(resp.Body)
@@ -89,6 +84,23 @@ func (c *Client) Do(req *http.Request, v interface{}) error {
 			return ErrorCannotReadBody
 		}
 		return json.Unmarshal(body, v)
+	}
+	return nil
+}
+
+func (r *RequestManager) DoFile(req *http.Request, out io.Writer) error {
+	resp, err := r.client.GetClient().Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if err := parseStatusCode(resp.StatusCode); err != nil {
+		return err
+	}
+
+	if _, err := io.Copy(out, resp.Body); err != nil {
+		return err
 	}
 	return nil
 }

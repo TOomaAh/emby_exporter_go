@@ -53,7 +53,7 @@ func main() {
 		os.Setenv("GEOIP_DB", geoipDatabase)
 	}
 
-	geoIp, err := geoip.InitGeoIPDatabase(config.Options.GeoIP, l)
+	geoIp, err := geoip.InitGeoIPDatabase(config, l)
 
 	if err != nil {
 		l.Fatal(err)

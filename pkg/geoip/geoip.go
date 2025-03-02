@@ -1,6 +1,7 @@
 package geoip
 
 import (
+	"TOomaAh/emby_exporter_go/internal/conf"
 	"TOomaAh/emby_exporter_go/pkg/logger"
 	"log"
 	"os"
@@ -18,12 +19,11 @@ type GeoIP interface {
 	GetLocation(ip string) (float64, float64)
 	GetPostalCode(ip string) string
 	GetRegion(ip string) string
-	SetLogger(logger logger.Interface)
 	Close()
 }
 
-func InitGeoIPDatabase(enable bool, logger logger.Interface) (GeoIP, error) {
-	switch enable {
+func InitGeoIPDatabase(cfg *conf.Config, logger logger.Interface) (GeoIP, error) {
+	switch cfg.Options.GeoIP {
 	case true:
 		file := os.Getenv("GEOIP_DB")
 		if file == "" {
@@ -31,11 +31,26 @@ func InitGeoIPDatabase(enable bool, logger logger.Interface) (GeoIP, error) {
 		}
 
 		if _, err := os.Stat(file); os.IsNotExist(err) {
-			logger.Error("GeoIP database file does not exist: %s, disable geoip", file)
-			return newNoGeoIP(), nil
+			if cfg.Options.GeoIPOptions.AccountId == "" || cfg.Options.GeoIPOptions.LicenceKey == "" {
+				logger.Error("GeoIP database is not found and no account ID or licence key is provided")
+				return newNoGeoIP(), err
+			}
+			geoIP, err := newGeoIP(file, cfg.Options.GeoIPOptions.AccountId, cfg.Options.GeoIPOptions.LicenceKey)
+
+			if err != nil {
+				return newNoGeoIP(), nil
+			}
+
+			return geoIP, nil
 		}
 
-		geoIP = newGeoIP(file)
+		geoIP, err := newGeoIP(file, cfg.Options.GeoIPOptions.AccountId, cfg.Options.GeoIPOptions.LicenceKey)
+
+		if err != nil {
+			logger.Error("Error while opening GeoIP database: %s", err)
+			return nil, err
+		}
+
 		return geoIP, nil
 	default:
 		geoIP = newNoGeoIP()

@@ -27,10 +27,10 @@ const (
 )
 
 type Server struct {
-	client *request.Client
 	UserID string
 
-	IsRecheable bool
+	IsRecheable    bool
+	requestManager *request.RequestManager
 
 	Logger logger.Interface
 }
@@ -61,7 +61,7 @@ func NewServer(s *ServerInfo, logger logger.Interface) *Server {
 		os.Exit(1)
 	}
 
-	client, err := request.NewClient(s.Hostname+":"+s.Port, s.Token)
+	client, err := NewEmbyClient(s.Hostname+":"+s.Port, s.Token)
 
 	if err != nil {
 		logger.Fatal("Cannot create a new client for Emby Server " + err.Error())
@@ -69,10 +69,10 @@ func NewServer(s *ServerInfo, logger logger.Interface) *Server {
 	}
 
 	server := &Server{
-		UserID:      s.UserID,
-		client:      client,
-		IsRecheable: false,
-		Logger:      logger,
+		UserID:         s.UserID,
+		IsRecheable:    false,
+		Logger:         logger,
+		requestManager: request.NewRequestManager(client),
 	}
 
 	return server
@@ -82,13 +82,13 @@ func (s Server) GetSessions() (*[]entity.Sessions, error) {
 
 	var sessions []entity.Sessions
 
-	req, err := s.client.NewRequest(http.MethodGet, sessionPath, nil)
+	req, err := s.requestManager.NewRequest(http.MethodGet, sessionPath, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.client.Do(req, &sessions)
+	err = s.requestManager.Do(req, &sessions)
 
 	if err != nil {
 
@@ -104,13 +104,13 @@ func (s Server) GetSessions() (*[]entity.Sessions, error) {
 
 func (s *Server) GetActivity() (*entity.Activity, error) {
 	var activity entity.Activity
-	req, err := s.client.NewRequest(http.MethodGet, activityPath, nil)
+	req, err := s.requestManager.NewRequest(http.MethodGet, activityPath, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.client.Do(req, &activity)
+	err = s.requestManager.Do(req, &activity)
 
 	if err != nil {
 
@@ -125,13 +125,13 @@ func (s *Server) GetActivity() (*entity.Activity, error) {
 }
 
 func (s *Server) Ping() error {
-	req, err := s.client.NewRequest(http.MethodGet, pingPath, nil)
+	req, err := s.requestManager.NewRequest(http.MethodGet, pingPath, nil)
 
 	if err != nil {
 		return err
 	}
 
-	err = s.client.Do(req, nil)
+	err = s.requestManager.Do(req, nil)
 
 	if err != nil {
 
@@ -148,13 +148,13 @@ func (s *Server) Ping() error {
 func (s *Server) GetLibrary() (*entity.LibraryInfo, error) {
 	var library entity.LibraryInfo
 
-	req, err := s.client.NewRequest(http.MethodGet, libraryPath, nil)
+	req, err := s.requestManager.NewRequest(http.MethodGet, libraryPath, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.client.Do(req, &library)
+	err = s.requestManager.Do(req, &library)
 
 	if err != nil {
 
@@ -170,13 +170,13 @@ func (s *Server) GetLibrary() (*entity.LibraryInfo, error) {
 
 func (s *Server) GetServerInfo() (*entity.SystemInfo, error) {
 	var systemInfo entity.SystemInfo
-	req, err := s.client.NewRequest(http.MethodGet, systemInfoPath, nil)
+	req, err := s.requestManager.NewRequest(http.MethodGet, systemInfoPath, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.client.Do(req, &systemInfo)
+	err = s.requestManager.Do(req, &systemInfo)
 
 	if err != nil {
 
@@ -194,7 +194,7 @@ func (s *Server) GetLibrarySize(itemID, contentType string) (int, error) {
 	var librarySize int
 	var library entity.Library
 
-	req, err := s.client.NewRequest(http.MethodGet, "/Users/"+
+	req, err := s.requestManager.NewRequest(http.MethodGet, "/Users/"+
 		s.UserID+
 		"/Items?IncludeItemTypes=Movie&Recursive=true&Fields=BasicSyncInfo&EnableImageTypes=Primary&ParentId="+
 		itemID+"&Limit=1&IncludeItemTypes="+includeType[contentType], nil)
@@ -203,7 +203,7 @@ func (s *Server) GetLibrarySize(itemID, contentType string) (int, error) {
 		return 0, err
 	}
 
-	err = s.client.Do(req, &library)
+	err = s.requestManager.Do(req, &library)
 
 	if err != nil {
 
@@ -221,14 +221,14 @@ func (s *Server) GetLibrarySize(itemID, contentType string) (int, error) {
 
 func (s *Server) GetAlerts() (*entity.Alert, error) {
 	var alert entity.Alert
-	req, err := s.client.NewRequest(http.MethodGet, systemAlertPath, nil)
+	req, err := s.requestManager.NewRequest(http.MethodGet, systemAlertPath, nil)
 
 	if err != nil {
 
 		return nil, err
 	}
 
-	err = s.client.Do(req, &alert)
+	err = s.requestManager.Do(req, &alert)
 
 	if err != nil {
 
