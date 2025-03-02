@@ -48,7 +48,6 @@ jobs:
         run: |
           LICENSE_KEY=${{ secrets.MAXMIND_LICENSE_KEY }}
           ACCOUNT_ID=${{ secrets.MAXMIND_ACCOUNT_ID }}
-
           curl -o maxmind-db.tar.gz -O -J -L -u ${ACCOUNT_ID}:${LICENSE_KEY} "https://download.maxmind.com/geoip/databases/GeoLite2-City/download?suffix=tar.gz"
           tar zxvf maxmind-db.tar.gz
           mv GeoLite2-City_*/GeoLite2-City.mmdb geoip.mmdb
@@ -70,12 +69,18 @@ jobs:
           # Le fichier est nommé sans le préfixe "sha256:"
           touch "/tmp/digests/${digest#sha256:}"
 
-      # ICI : on utilise un nom d'artifact UNIQUE par plateforme
-      # en remplaçant le slash dans "linux/arm/v7" par un tiret, par exemple.
+      # Calculer un nom d'artifact unique à partir de la variable de matrice
+      - name: Set platform artifact name
+        id: set_artifact_name
+        shell: bash
+        run: |
+          sanitized=$(echo "${{ matrix.platform }}" | tr '/' '-')
+          echo "artifact_name=digests-$sanitized" >> $GITHUB_OUTPUT
+
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: "digests-${{ matrix.platform | replace('/', '-') }}"
+          name: ${{ steps.set_artifact_name.outputs.artifact_name }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -85,8 +90,6 @@ jobs:
     needs:
       - build
     steps:
-      # Au lieu de télécharger un artifact par nom,
-      # on télécharge tous les artifacts créés dans le job "build".
       - name: Download all digests
         uses: actions/download-artifact@v4
         with:
@@ -116,8 +119,6 @@ jobs:
         working-directory: /tmp/digests
         if: github.event_name != 'pull_request'
         run: |
-          # On récupère les tags Docker (dans DOCKER_METADATA_OUTPUT_JSON).
-          # Puis on assemble tous les digests trouvés dans /tmp/digests.
           DIGEST_ARGS=""
           for digestfile in $(find . -type f); do
             DIGEST_SHA=$(basename "$digestfile")
