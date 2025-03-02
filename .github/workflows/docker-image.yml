@@ -6,11 +6,8 @@ on:
       - dev
       - v*
       - latest
-    tags:
-      - '*'
   pull_request:
     branches:
-      - dev
       - v*
       - latest
 
@@ -29,45 +26,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Étape pour calculer les tags d'image
-      - name: Définir les tags d'image
-        id: set_tags
-        shell: bash
-        run: |
-          TAGS=""
-          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" && "${{ github.event.pull_request.base.ref }}" == "dev" ]]; then
-            TAGS="unstable"
-          elif [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            TAGS="${GITHUB_REF#refs/tags/} latest"
-          fi
-          echo "tags=$TAGS" >> $GITHUB_OUTPUT
-
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: bagul/goemby_exporter
-          tags: ${{ steps.set_tags.outputs.tags }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Download MaxMind DB
         run: |
           LICENSE_KEY=${{ secrets.MAXMIND_LICENSE_KEY }}
           ACCOUNT_ID=${{ secrets.MAXMIND_ACCOUNT_ID }}
+
           curl -o maxmind-db.tar.gz -O -J -L -u ${ACCOUNT_ID}:${LICENSE_KEY} "https://download.maxmind.com/geoip/databases/GeoLite2-City/download?suffix=tar.gz"
           tar zxvf maxmind-db.tar.gz
           mv GeoLite2-City_*/GeoLite2-City.mmdb geoip.mmdb
           rm -rf GeoLite2-City_* maxmind-db.tar.gz
-        env:
-          LICENSE_KEY: ${{ secrets.MAXMIND_LICENSE_KEY }}
+
       - name: Build and push by digest
         id: build
         uses: docker/build-push-action@v5
@@ -76,15 +62,20 @@ jobs:
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=bagul/goemby_exporter,push-by-digest=true,name-canonical=true,push=true
+
       - name: Export digest
         run: |
           mkdir -p /tmp/digests
           digest="${{ steps.build.outputs.digest }}"
+          # Le fichier est nommé sans le préfixe "sha256:"
           touch "/tmp/digests/${digest#sha256:}"
+
+      # ICI : on utilise un nom d'artifact UNIQUE par plateforme
+      # en remplaçant le slash dans "linux/arm/v7" par un tiret, par exemple.
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests
+          name: "digests-${{ matrix.platform | replace('/', '-') }}"
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -94,34 +85,49 @@ jobs:
     needs:
       - build
     steps:
-      - name: Download digests
+      # Au lieu de télécharger un artifact par nom,
+      # on télécharge tous les artifacts créés dans le job "build".
+      - name: Download all digests
         uses: actions/download-artifact@v4
         with:
-          name: digests
           path: /tmp/digests
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: bagul/goemby_exporter
-          tags: ${{ steps.set_tags.outputs.tags }}
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Get version from go file
         id: version
         run: |
           echo ::set-output name=version::$(grep -oP 'version = "\K[^"]+' main.go)
+
       - name: Create manifest list and push
         working-directory: /tmp/digests
         if: github.event_name != 'pull_request'
         run: |
-          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf 'bagul/goemby_exporter@sha256:%s ' *)
+          # On récupère les tags Docker (dans DOCKER_METADATA_OUTPUT_JSON).
+          # Puis on assemble tous les digests trouvés dans /tmp/digests.
+          DIGEST_ARGS=""
+          for digestfile in $(find . -type f); do
+            DIGEST_SHA=$(basename "$digestfile")
+            DIGEST_ARGS="$DIGEST_ARGS bagul/goemby_exporter@sha256:$DIGEST_SHA"
+          done
+
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $DIGEST_ARGS
+
       - name: Inspect image
         if: github.event_name != 'pull_request'
         run: |
