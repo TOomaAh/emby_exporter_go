@@ -1,3 +1,4 @@
+// Delete unnecessary logger interfaces
 package geoip
 
 import (
@@ -100,12 +101,7 @@ func NewGeoIPManager(file, accountID, licenceKey string, logLevel string) (*GeoI
 
 	var updater GeoIPUpdater
 
-	if accountID == "" || licenceKey == "" {
-		l.Info("No authentication provided for GeoIP database updates")
-		updater = &NoAuthUpdater{
-			Logger: l,
-		}
-	} else {
+	if accountID != "" && licenceKey != "" {
 		l.Info("Authentication provided for GeoIP database updates")
 		client := NewMaxmindClient(licenceKey, accountID)
 		updater = &AuthUpdater{
@@ -116,15 +112,25 @@ func NewGeoIPManager(file, accountID, licenceKey string, logLevel string) (*GeoI
 		// Initialize the current SHA
 		updater.(*AuthUpdater).currentSHA = updater.ReadCurrentSHA()
 
-		// Run initial update if needed
-		runDatabaseUpdater(updater, geoIPManager, l)
+		// Check if the database exists and needs updating
+		if _, err := os.Stat(file); os.IsNotExist(err) {
+			l.Info("GeoIP database does not exist, creating...")
+			if err := updater.Update(geoIPManager); err != nil {
+				l.Error("Failed to create initial GeoIP database: %s", err)
+			}
+		} else if needsUpdate, _ := updater.NeedUpdate(); needsUpdate {
+			l.Info("Running initial GeoIP database update check")
+			runDatabaseUpdater(updater, geoIPManager, l)
+		}
 
-		// Start update goroutine
+		// Start the updater goroutine AFTER all initialization is complete
 		go func() {
+			// Log this message before starting the ticker
+			l.Info("Starting GeoIP database updater with interval %s", updateCheckInterval)
+
 			ticker := time.NewTicker(updateCheckInterval)
 			defer ticker.Stop()
 
-			l.Info("GeoIP database updater started")
 			for {
 				select {
 				case <-ticker.C:
@@ -373,11 +379,15 @@ func (n *NoAuthUpdater) ReadCurrentSHA() string {
 func (m *AuthUpdater) ReadCurrentSHA() string {
 	// First check if we have already cached the SHA
 	if m.currentSHA != "" {
+		// Switched to Debug level
+		m.logger.Debug("Using cached SHA256: %s", m.currentSHA)
 		return m.currentSHA
 	}
 
 	shaFile := shaFileName
 	if _, err := os.Stat(shaFile); os.IsNotExist(err) {
+		// Switched to Debug level
+		m.logger.Debug("SHA file does not exist: %s", shaFile)
 		return ""
 	}
 
@@ -389,6 +399,8 @@ func (m *AuthUpdater) ReadCurrentSHA() string {
 
 	// Cache the SHA value
 	m.currentSHA = string(currentSha256)
+	// Switched to Debug level
+	m.logger.Debug("Read SHA256 from file: %s", m.currentSHA)
 
 	return m.currentSHA
 }
@@ -471,11 +483,10 @@ func (m *AuthUpdater) Update(geoIPManager *GeoIPManager) error {
 	}
 
 	// We'll manually clean up the temp directory at the end to ensure all file handles are closed first
-	// This helps avoid Windows file locking issues
+	defer os.RemoveAll(tmpDir)
 
 	tarGzPath := filepath.Join(tmpDir, "geoip.tar.gz")
 	mmdbPath := filepath.Join(tmpDir, "GeoLite2-City.mmdb")
-	// No longer need shaPath as we handle the SHA file differently
 
 	// Download the compressed database
 	out, err := os.Create(tarGzPath)
@@ -501,13 +512,8 @@ func (m *AuthUpdater) Update(geoIPManager *GeoIPManager) error {
 
 	// Verify the extracted file exists
 	if _, err := os.Stat(mmdbPath); os.IsNotExist(err) {
-		// Clean up temp directory since we're returning early
-		os.RemoveAll(tmpDir)
 		return ErrFileDoesNotExist
 	}
-
-	// Get the SHA256 of the downloaded file - we'll handle this after successful DB update
-	// Instead of trying to save the file immediately, we'll download it again later
 
 	// Acquire exclusive lock for database update
 	geoIPManager.mu.Lock()
@@ -517,7 +523,6 @@ func (m *AuthUpdater) Update(geoIPManager *GeoIPManager) error {
 	if geoIPManager.db != nil {
 		if err := geoIPManager.db.Close(); err != nil {
 			m.logger.Error("Failed to close database: %s", err)
-			// Continue with update anyway
 		}
 		geoIPManager.db = nil
 	}
@@ -532,39 +537,10 @@ func (m *AuthUpdater) Update(geoIPManager *GeoIPManager) error {
 		return fmt.Errorf("failed to replace database file: %w", err)
 	}
 
-	// Save the SHA256 - no shaFile to close as we're taking a different approach now
-
-	// Get the SHA content we just downloaded to save it properly
-	req, err = m.client.requestManager.NewRequest(http.MethodGet, maxmindShaPath, nil)
-	if err != nil {
-		m.logger.Error("Failed to create SHA request: %s", err)
-	} else {
-		var shaBuffer = new(bytes.Buffer)
-		if err := m.client.requestManager.DoFile(req, shaBuffer); err != nil {
-			m.logger.Error("Failed to download SHA: %s", err)
-		} else {
-			// Parse the SHA256 properly to store only the hash part
-			shaContent := shaBuffer.String()
-			parts := strings.Fields(shaContent)
-			if len(parts) > 0 {
-				shaHash := parts[0]
-
-				// Remove existing SHA file if it exists
-				shaFilePath := shaFileName
-				if _, err := os.Stat(shaFilePath); err == nil {
-					if err := os.Remove(shaFilePath); err != nil {
-						m.logger.Error("Failed to remove existing SHA file: %s", err)
-					}
-				}
-
-				// Write only the hash part to the SHA file
-				if err := os.WriteFile(shaFilePath, []byte(shaHash), 0644); err != nil {
-					m.logger.Error("Failed to save SHA file: %s", err)
-				}
-			} else {
-				m.logger.Error("Failed to parse SHA content: %s", shaContent)
-			}
-		}
+	// Download and save the SHA256
+	if err := m.downloadAndSaveSHA(); err != nil {
+		m.logger.Error("Failed to save SHA256: %s", err)
+		// Continue anyway, not critical
 	}
 
 	// Reopen the database
@@ -574,19 +550,55 @@ func (m *AuthUpdater) Update(geoIPManager *GeoIPManager) error {
 	}
 
 	geoIPManager.db = db
-	m.currentSHA = m.ReadCurrentSHA()
-
 	m.logger.Info("GeoIP database updated successfully")
 
-	// Clean up the temporary directory now that all operations are complete
-	// This is placed at the end of the function to ensure all file handles are closed
-	os.RemoveAll(tmpDir)
+	return nil
+}
+
+// downloadAndSaveSHA downloads the SHA256 for the current database and saves it to a file.
+func (m *AuthUpdater) downloadAndSaveSHA() error {
+	req, err := m.client.requestManager.NewRequest(http.MethodGet, maxmindShaPath, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create SHA request: %w", err)
+	}
+
+	var shaBuffer = new(bytes.Buffer)
+	if err := m.client.requestManager.DoFile(req, shaBuffer); err != nil {
+		return fmt.Errorf("failed to download SHA: %w", err)
+	}
+
+	// Parse the SHA256 properly to store only the hash part
+	shaContent := shaBuffer.String()
+	parts := strings.Fields(shaContent)
+	if len(parts) == 0 {
+		return fmt.Errorf("failed to parse SHA content: %s", shaContent)
+	}
+
+	shaHash := parts[0]
+
+	// Remove existing SHA file if it exists
+	shaFilePath := shaFileName
+	if _, err := os.Stat(shaFilePath); err == nil {
+		if err := os.Remove(shaFilePath); err != nil {
+			return fmt.Errorf("failed to remove existing SHA file: %w", err)
+		}
+	}
+
+	// Write only the hash part to the SHA file
+	if err := os.WriteFile(shaFilePath, []byte(shaHash), 0644); err != nil {
+		return fmt.Errorf("failed to save SHA file: %w", err)
+	}
+
+	m.logger.Debug("Saved SHA256 hash: %s", shaHash)
+	// Update the cached SHA value
+	m.currentSHA = shaHash
 
 	return nil
 }
 
 // runDatabaseUpdater checks if an update is needed and performs it if necessary.
 func runDatabaseUpdater(updater GeoIPUpdater, geoIPManager *GeoIPManager, l logger.Interface) {
+	l.Debug("Checking for GeoIP database updates")
 	needsUpdate, err := updater.NeedUpdate()
 	if err != nil {
 		l.Error("Error checking for GeoIP database updates: %s", err)
@@ -594,11 +606,12 @@ func runDatabaseUpdater(updater GeoIPUpdater, geoIPManager *GeoIPManager, l logg
 	}
 
 	if needsUpdate {
+		l.Info("GeoIP database update required, updating...")
 		if err := updater.Update(geoIPManager); err != nil {
 			l.Error("Error updating GeoIP database: %s", err)
-		} else {
-			l.Info("GeoIP database updated successfully")
 		}
+	} else {
+		l.Debug("No GeoIP database update needed")
 	}
 }
 
