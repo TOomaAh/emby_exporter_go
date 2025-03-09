@@ -2,42 +2,55 @@ package geoip
 
 import "TOomaAh/emby_exporter_go/pkg/logger"
 
-type NoGeoIpDatabase struct{}
-
-func newNoGeoIP() *NoGeoIpDatabase {
-	return &NoGeoIpDatabase{}
+// NoGeoIP implements the GeoIP interface with no-op functions.
+// It's used when GeoIP functionality is disabled or unavailable.
+type NoGeoIP struct {
+	logger logger.Interface
 }
 
-func (g *NoGeoIpDatabase) SetLogger(logger logger.Interface) {
+// NewNoGeoIP creates a new NoGeoIP instance.
+func NewNoGeoIP() *NoGeoIP {
+	return &NoGeoIP{
+		logger: logger.New("info"),
+	}
 }
 
-func (g *NoGeoIpDatabase) GetCountryCode(ip string) string {
-	return ""
+// GetCountryCode returns an empty string and nil error for NoGeoIP.
+func (n *NoGeoIP) GetCountryCode(ip string) (string, error) {
+	return "", nil
 }
 
-func (g *NoGeoIpDatabase) GetCountryName(ip string) string {
-	return ""
+// GetCountryName returns an empty string and nil error for NoGeoIP.
+func (n *NoGeoIP) GetCountryName(ip string) (string, error) {
+	return "", nil
 }
 
-func (g *NoGeoIpDatabase) GetCity(ip string) string {
-	return ""
+// GetCity returns an empty string and nil error for NoGeoIP.
+func (n *NoGeoIP) GetCity(ip string) (string, error) {
+	return "", nil
 }
 
-func (g *NoGeoIpDatabase) GetContinent(ip string) string {
-	return ""
+// GetContinent returns an empty string and nil error for NoGeoIP.
+func (n *NoGeoIP) GetContinent(ip string) (string, error) {
+	return "", nil
 }
 
-func (g *NoGeoIpDatabase) GetLocation(ip string) (float64, float64) {
-	return 0, 0
+// GetLocation returns zeros and nil error for NoGeoIP.
+func (n *NoGeoIP) GetLocation(ip string) (float64, float64, error) {
+	return 0, 0, nil
 }
 
-func (g *NoGeoIpDatabase) GetPostalCode(ip string) string {
-	return ""
+// GetPostalCode returns an empty string and nil error for NoGeoIP.
+func (n *NoGeoIP) GetPostalCode(ip string) (string, error) {
+	return "", nil
 }
 
-func (g *NoGeoIpDatabase) GetRegion(ip string) string {
-	return ""
+// GetRegion returns an empty string and nil error for NoGeoIP.
+func (n *NoGeoIP) GetRegion(ip string) (string, error) {
+	return "", nil
 }
 
-func (g *NoGeoIpDatabase) Close() {
+// Close is a no-op for NoGeoIP.
+func (n *NoGeoIP) Close() error {
+	return nil
 }
