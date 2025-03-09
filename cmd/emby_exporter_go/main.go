@@ -56,7 +56,7 @@ func main() {
 	geoIp, err := geoip.InitGeoIPDatabase(config, l)
 
 	if err != nil {
-		l.Fatal(err)
+		l.Error(err)
 	}
 
 	app.Run(config, geoIp, l)
