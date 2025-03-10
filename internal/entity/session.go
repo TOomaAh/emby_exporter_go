@@ -1,11 +1,10 @@
 package entity
 
 import (
+	"math"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/dustin/go-humanize"
 )
 
 type TranscodeReasons string
@@ -180,8 +179,37 @@ func (s *Sessions) GetRuntimeTick() int64 {
 	return s.NowPlayingItem.RunTimeTicks
 }
 
-func byteToMb(b uint64) string {
-	return humanize.Bytes(b)
+func bitsToHumanReadable(bits uint64) string {
+	value := float64(bits)
+
+	// Units for bits
+	units := []string{"b", "Kb", "Mb", "Gb", "Tb", "Pb", "Eb"}
+
+	if value == 0 {
+		return "0 b"
+	}
+
+	// Find the appropriate unit
+	i := 0
+	for value >= 1024 && i < len(units)-1 {
+		value /= 1024
+		i++
+	}
+
+	// Round to 2 decimal places
+	value = math.Round(value*100) / 100
+
+	// More efficient string conversion
+	var result string
+	if value == math.Floor(value) {
+		// Integer values don't need decimal part
+		result = strconv.FormatInt(int64(value), 10) + " " + units[i]
+	} else {
+		// Use FormatFloat directly instead of Sprintf
+		result = strconv.FormatFloat(value, 'f', 2, 64) + " " + units[i]
+	}
+
+	return result
 }
 
 func (s *Sessions) GetBitrateValue() uint64 {
@@ -192,7 +220,7 @@ func (s *Sessions) GetBitrateValue() uint64 {
 }
 
 func (s *Sessions) GetBitrateFormat() string {
-	return byteToMb(s.GetBitrateValue())
+	return bitsToHumanReadable(s.GetBitrateValue())
 }
 
 func (s *Sessions) GetPlayMethod() string {
