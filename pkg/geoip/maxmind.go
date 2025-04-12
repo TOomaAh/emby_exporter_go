@@ -43,7 +43,7 @@ var (
 
 // GeoIPManager manages the loading and updating of the GeoIP database.
 type GeoIPManager struct {
-	mu      sync.RWMutex // Changed to RWMutex for better concurrency
+	mu      sync.RWMutex
 	db      *geoip2.Reader
 	path    string
 	updater GeoIPUpdater
@@ -151,7 +151,7 @@ func NewGeoIPManager(file, accountID, licenceKey string, logLevel string) (*GeoI
 		if accountID != "" && licenceKey != "" {
 			if err := updater.Update(geoIPManager); err != nil {
 				l.Error("Failed to create initial GeoIP database: %s", err)
-				// Continue, maybe a default database will be used
+				return nil, err
 			}
 		}
 	}
