@@ -26,6 +26,10 @@ type Config struct {
 		RetryInterval int  `yaml:"retryInterval" default:"10"`
 		GeoIP         bool `yaml:"geoip" default:"false"`
 		HealthCheck   bool `yaml:"healthcheck" default:"false"`
+		GeoIPOptions  struct {
+			AccountId  string `yaml:"accountId"`
+			LicenceKey string `yaml:"licenceKey"`
+		} `yaml:"geoipOptions,omitempty"`
 	} `yaml:"options,omitempty"`
 }
 
