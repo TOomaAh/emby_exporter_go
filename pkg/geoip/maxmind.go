@@ -527,14 +527,43 @@ func (m *AuthUpdater) Update(geoIPManager *GeoIPManager) error {
 		geoIPManager.db = nil
 	}
 
-	// Replace the database file
-	if err := os.Rename(mmdbPath, geoIPManager.path); err != nil {
-		// Try to reopen the old database
-		db, reopenErr := geoip2.Open(geoIPManager.path)
-		if reopenErr == nil {
-			geoIPManager.db = db
+	// Remove the old database file if it exists
+	if _, err := os.Stat(geoIPManager.path); !os.IsNotExist(err) {
+		if err := os.Remove(geoIPManager.path); err != nil {
+			return fmt.Errorf("failed to remove old database file: %w", err)
 		}
-		return fmt.Errorf("failed to replace database file: %w", err)
+	}
+	// Check if the old database file was removed successfully
+	if _, err := os.Stat(geoIPManager.path); !os.IsNotExist(err) {
+		return ErrCannotRemoveFile
+	}
+
+	// Replace the old database with the new one
+	if err := os.Rename(mmdbPath, geoIPManager.path); err != nil {
+		// Handle the case where the rename fails due to cross-device link error
+		if strings.Contains(err.Error(), "invalid cross-device link") {
+			// Read the source database file
+			sourceData, readErr := os.ReadFile(mmdbPath)
+			if readErr != nil {
+				return fmt.Errorf("failed to read source database file: %w", readErr)
+			}
+
+			// Write the data to the target path
+			writeErr := os.WriteFile(geoIPManager.path, sourceData, 0644)
+			if writeErr != nil {
+				return fmt.Errorf("failed to write database file: %w", writeErr)
+			}
+
+			// Remove the temporary database file
+			os.Remove(mmdbPath)
+		} else {
+			// If the rename fails for any other reason, log the error
+			db, reopenErr := geoip2.Open(geoIPManager.path)
+			if reopenErr == nil {
+				geoIPManager.db = db
+			}
+			return fmt.Errorf("failed to replace database file: %w", err)
+		}
 	}
 
 	// Download and save the SHA256
