@@ -1,6 +1,7 @@
 #!/bin/sh
+
 if [ -z "${CONFIG_FILE}" ]; then
-    ./emby_exporter
+    exec ./emby_exporter
 else
-    ./emby_exporter -c $CONFIG_FILE
+    exec ./emby_exporter -c $CONFIG_FILE
 fi

@@ -1,10 +1,14 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"TOomaAh/emby_exporter_go/internal/conf"
@@ -153,8 +157,35 @@ func Run(cfg *conf.Config, geoIp geoip.GeoIP, log logger.Interface) {
 	port := cfg.Exporter.Port | 9210
 	log.Info("Beginning to serve on port %d", port)
 	log.Info("You can see the metrics on http://localhost:%d/metrics", port)
-	err := http.ListenAndServe(fmt.Sprintf(":%d", port), logRequest(http.DefaultServeMux))
-	if err != nil {
-		log.Error("HTTP server error: %v", err)
+
+	// listen for signals
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL)
+
+	server := &http.Server{
+		Addr:    fmt.Sprintf(":%d", port),
+		Handler: logRequest(http.DefaultServeMux),
 	}
+
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Error("HTTP server error: %v", err)
+		}
+	}()
+
+	<-ch
+	geoIp.Close()
+
+	log.Info("Shutting down...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Error("Error shutting down server: %v", err)
+	} else {
+		log.Info("Server shut down gracefully")
+	}
+
+	geoIp.Close()
 }
