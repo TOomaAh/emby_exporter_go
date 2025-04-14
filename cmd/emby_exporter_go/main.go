@@ -6,8 +6,6 @@ import (
 	"TOomaAh/emby_exporter_go/pkg/geoip"
 	"TOomaAh/emby_exporter_go/pkg/logger"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/jessevdk/go-flags"
@@ -60,17 +58,6 @@ func main() {
 	if err != nil {
 		l.Error(err)
 	}
-
-	// listen for signals
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		sig := <-ch
-		geoIp.Close()
-		l.Info("Received signal: %s", sig)
-		l.Info("Shutting down...")
-		os.Exit(0)
-	}()
 
 	app.Run(config, geoIp, l)
 
