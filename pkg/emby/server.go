@@ -29,7 +29,7 @@ const (
 type Server struct {
 	UserID string
 
-	IsRecheable    bool
+	IsReachable    bool
 	requestManager *request.RequestManager
 
 	Logger logger.Interface
@@ -70,7 +70,7 @@ func NewServer(s *ServerInfo, logger logger.Interface) *Server {
 
 	server := &Server{
 		UserID:         s.UserID,
-		IsRecheable:    false,
+		IsReachable:    false,
 		Logger:         logger,
 		requestManager: request.NewRequestManager(client),
 	}
@@ -93,7 +93,7 @@ func (s Server) GetSessions() (*[]entity.Sessions, error) {
 	if err != nil {
 
 		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.IsRecheable = false
+			s.IsReachable = false
 		}
 
 		return nil, err
@@ -115,7 +115,7 @@ func (s *Server) GetActivity() (*entity.Activity, error) {
 	if err != nil {
 
 		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.IsRecheable = false
+			s.IsReachable = false
 		}
 
 		return nil, err
@@ -136,7 +136,7 @@ func (s *Server) Ping() error {
 	if err != nil {
 
 		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.IsRecheable = false
+			s.IsReachable = false
 		}
 
 		return err
@@ -159,7 +159,7 @@ func (s *Server) GetLibrary() (*entity.LibraryInfo, error) {
 	if err != nil {
 
 		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.IsRecheable = false
+			s.IsReachable = false
 		}
 
 		return nil, err
@@ -181,7 +181,7 @@ func (s *Server) GetServerInfo() (*entity.SystemInfo, error) {
 	if err != nil {
 
 		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.IsRecheable = false
+			s.IsReachable = false
 		}
 
 		return nil, err
@@ -208,7 +208,7 @@ func (s *Server) GetLibrarySize(itemID, contentType string) (int, error) {
 	if err != nil {
 
 		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.IsRecheable = false
+			s.IsReachable = false
 		}
 
 		return 0, err
@@ -233,7 +233,7 @@ func (s *Server) GetAlerts() (*entity.Alert, error) {
 	if err != nil {
 
 		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.IsRecheable = false
+			s.IsReachable = false
 		}
 
 		return nil, err

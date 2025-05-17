@@ -28,7 +28,7 @@ type Config struct {
 		HealthCheck   bool `yaml:"healthcheck" default:"false"`
 		GeoIPOptions  struct {
 			AccountId  string `yaml:"accountId"`
-			LicenceKey string `yaml:"licenceKey"`
+			LicenseKey string `yaml:"licenseKey"`
 		} `yaml:"geoipOptions,omitempty"`
 	} `yaml:"options,omitempty"`
 }

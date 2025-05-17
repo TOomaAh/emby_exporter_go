@@ -78,7 +78,7 @@ func InitGeoIPDatabase(cfg *conf.Config, l logger.Interface) (GeoIP, error) {
 	fileExists := !os.IsNotExist(err)
 
 	accountID := cfg.Options.GeoIPOptions.AccountId
-	licenseKey := cfg.Options.GeoIPOptions.LicenceKey
+	licenseKey := cfg.Options.GeoIPOptions.LicenseKey
 
 	// If file doesn't exist and we have no credentials, we can't proceed with GeoIP functionality
 	if !fileExists && (accountID == "" || licenseKey == "") {
