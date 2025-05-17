@@ -30,7 +30,6 @@ const (
 	httpClientTimeout   = 30 * time.Second // Increased timeout for download
 	updateCheckInterval = 24 * time.Hour
 	userAgent           = "emby_exporter_go"
-	shaFileName         = "geoip_update.mmdb.sha256" // Consistent file name for the SHA256 checksum
 )
 
 var (
@@ -39,6 +38,9 @@ var (
 	ErrCannotRemoveFile = errors.New("cannot remove file")
 	ErrCannotRenameFile = errors.New("cannot rename file")
 	ErrInvalidIPAddress = errors.New("invalid IP address")
+
+	shaFileName = "geoip_update.mmdb.sha256" // Consistent file name for the SHA256 checksum
+
 )
 
 // GeoIPManager manages the loading and updating of the GeoIP database.
@@ -107,6 +109,18 @@ func NewGeoIPManager(file, accountID, licenceKey string, logLevel string) (*GeoI
 		updater = &AuthUpdater{
 			client: client.(*MaxmindClient),
 			logger: l,
+		}
+
+		// put the sha256 file in the same directory as the database
+		// if the database is in a different directory
+		if os.Getenv("GEOIP_DB") != "" {
+			// get the folder without the filename (if present)
+			geoIpFilename := os.Getenv("GEOIP_DB")
+			geoIpPath := filepath.Dir(geoIpFilename)
+
+			shaFileName = filepath.Join(geoIpPath, shaFileName)
+			l.Info("Sha256 file path from environment variable: %s", shaFileName)
+
 		}
 
 		// Initialize the current SHA
