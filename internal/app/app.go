@@ -61,7 +61,7 @@ func metricHandlerMiddleware(next http.Handler, server *emby.Server, cfg *conf.C
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// If the server is unreachable at the beginning of the request,
 		// start the ping loop (if not already running) and return immediately.
-		if !server.IsRecheable {
+		if !server.IsReachable {
 			if !pm.IsPinging() {
 				go startPingLoop(server, logger.New("info"), cfg, pm)
 			}
@@ -75,7 +75,7 @@ func metricHandlerMiddleware(next http.Handler, server *emby.Server, cfg *conf.C
 
 		// After serving, check again: if the server became unreachable during the request,
 		// launch the ping loop (if not already running).
-		if !server.IsRecheable && !pm.IsPinging() {
+		if !server.IsReachable && !pm.IsPinging() {
 			go startPingLoop(server, logger.New("info"), cfg, pm)
 		}
 	})
@@ -87,7 +87,7 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 // startPingLoop pings the server at regular intervals until it responds.
-// This function blocks until the server becomes reachable and updates server.IsRecheable.
+// This function blocks until the server becomes reachable and updates server.IsReachable.
 func startPingLoop(server *emby.Server, log logger.Interface, cfg *conf.Config, pm *PingManager) {
 	// Ensure that no other ping loop is already running.
 	if pm.IsPinging() {
@@ -103,9 +103,9 @@ func startPingLoop(server *emby.Server, log logger.Interface, cfg *conf.Config, 
 	for {
 		if err := server.Ping(); err != nil {
 			log.Error("Server is not reachable, retrying in %d seconds...", cfg.Options.RetryInterval)
-			server.IsRecheable = false
+			server.IsReachable = false
 		} else {
-			server.IsRecheable = true
+			server.IsReachable = true
 			log.Info("Server is reachable")
 			break
 		}
@@ -129,11 +129,11 @@ func Run(cfg *conf.Config, geoIp geoip.GeoIP, log logger.Interface) {
 	// Perform an initial ping test at startup.
 	if err := embyServer.Ping(); err != nil {
 		log.Error("Initial ping failed: %v", err)
-		embyServer.IsRecheable = false
+		embyServer.IsReachable = false
 		// Start the ping loop in the background.
 		go startPingLoop(embyServer, log, cfg, pingManager)
 	} else {
-		embyServer.IsRecheable = true
+		embyServer.IsReachable = true
 		log.Info("Initial ping succeeded, server is reachable")
 	}
 
@@ -154,7 +154,12 @@ func Run(cfg *conf.Config, geoIp geoip.GeoIP, log logger.Interface) {
 
 	// Start the HTTP server.
 	// Note: using the bitwise OR operator (|) here seems to provide a default value.
-	port := cfg.Exporter.Port | 9210
+	port := cfg.Exporter.Port
+
+	if port == 0 {
+		port = 9210
+	}
+
 	log.Info("Beginning to serve on port %d", port)
 	log.Info("You can see the metrics on http://localhost:%d/metrics", port)
 
