@@ -84,10 +84,33 @@ func (c *SessionCollector) Collect(ch chan<- prometheus.Metric) {
 			season = session.NowPlayingItem.SeasonName
 		}
 
-		latitude, longitude, _ := c.geoip.GetLocation(session.RemoteEndPoint)
-		city, _ := c.geoip.GetCity(session.RemoteEndPoint)
-		region, _ := c.geoip.GetRegion(session.RemoteEndPoint)
-		countryCode, _ := c.geoip.GetCountryCode(session.RemoteEndPoint)
+		latitude, longitude, err := c.geoip.GetLocation(session.RemoteEndPoint)
+
+		if err != nil {
+			c.logger.Error("Error getting GeoIP location for %s: %s", session.RemoteEndPoint, err)
+			latitude, longitude = 0.0, 0.0
+		}
+
+		city, err := c.geoip.GetCity(session.RemoteEndPoint)
+
+		if err != nil {
+			c.logger.Error("Error getting GeoIP city for %s: %s", session.RemoteEndPoint, err)
+			city = ""
+		}
+
+		region, err := c.geoip.GetRegion(session.RemoteEndPoint)
+
+		if err != nil {
+			c.logger.Error("Error getting GeoIP region for %s: %s", session.RemoteEndPoint, err)
+			region = ""
+		}
+
+		countryCode, err := c.geoip.GetCountryCode(session.RemoteEndPoint)
+
+		if err != nil {
+			c.logger.Error("Error getting GeoIP country code for %s: %s", session.RemoteEndPoint, err)
+			countryCode = ""
+		}
 
 		ch <- prometheus.MustNewConstMetric(
 			c.sessions, prometheus.GaugeValue,

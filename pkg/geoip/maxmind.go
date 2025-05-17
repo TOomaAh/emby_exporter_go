@@ -76,14 +76,14 @@ type AuthUpdater struct {
 // MaxmindClient handles API communication with MaxMind.
 type MaxmindClient struct {
 	accountID      string
-	licenceKey     string
+	licenseKey     string
 	baseURL        string
 	client         *http.Client
 	requestManager *request.RequestManager
 }
 
 // NewGeoIPManager creates a new GeoIP manager with the specified database file and credentials.
-func NewGeoIPManager(file, accountID, licenceKey string, logLevel string) (*GeoIPManager, error) {
+func NewGeoIPManager(file, accountID, licenseKey string, logLevel string) (*GeoIPManager, error) {
 	l := logger.New(logLevel)
 
 	// Create context with cancellation for clean shutdown
@@ -103,9 +103,9 @@ func NewGeoIPManager(file, accountID, licenceKey string, logLevel string) (*GeoI
 
 	var updater GeoIPUpdater
 
-	if accountID != "" && licenceKey != "" {
+	if accountID != "" && licenseKey != "" {
 		l.Info("Authentication provided for GeoIP database updates")
-		client := NewMaxmindClient(licenceKey, accountID)
+		client := NewMaxmindClient(licenseKey, accountID)
 		updater = &AuthUpdater{
 			client: client.(*MaxmindClient),
 			logger: l,
@@ -162,7 +162,7 @@ func NewGeoIPManager(file, accountID, licenceKey string, logLevel string) (*GeoI
 	// Try to open the database, creating it if it doesn't exist
 	if _, err := os.Stat(file); os.IsNotExist(err) {
 		l.Info("GeoIP database does not exist, creating...")
-		if accountID != "" && licenceKey != "" {
+		if accountID != "" && licenseKey != "" {
 			if err := updater.Update(geoIPManager); err != nil {
 				l.Error("Failed to create initial GeoIP database: %s", err)
 				return nil, err
@@ -336,11 +336,11 @@ func (g *GeoIPManager) GetRegion(ipStr string) (string, error) {
 }
 
 // NewMaxmindClient creates a new client for MaxMind API.
-func NewMaxmindClient(licenceKey, accountID string) request.Client {
+func NewMaxmindClient(licenseKey, accountID string) request.Client {
 	m := &MaxmindClient{
 		baseURL:    maxmindBaseURL,
 		accountID:  accountID,
-		licenceKey: licenceKey,
+		licenseKey: licenseKey,
 		client: &http.Client{
 			Timeout: httpClientTimeout,
 		},
@@ -352,7 +352,7 @@ func NewMaxmindClient(licenceKey, accountID string) request.Client {
 
 // ApplyAuthentication adds authentication to the request.
 func (m *MaxmindClient) ApplyAuthentication(r *http.Request) error {
-	r.SetBasicAuth(m.accountID, m.licenceKey)
+	r.SetBasicAuth(m.accountID, m.licenseKey)
 	return nil
 }
 

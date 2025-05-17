@@ -64,7 +64,7 @@ options: # optional
   geoip: true # optional : default false
   geoipOptions: # optional if geoip is true
     accountId: "your maxmind account id" # optional
-    licenceKey: "your maxmind licence key" # optional
+    licenseKey: "your maxmind license key" # optional
 ```
 
 ## MaxMind GeoIP Database
@@ -91,7 +91,7 @@ For more detailed information on MaxMind database updates, see their [developer 
      geoip: true
      geoipOptions:
        accountId: "your_account_id_here"
-       licenceKey: "your_license_key_here"
+       licenseKey: "your_license_key_here"
    ```
    - The exporter will automatically download and update the GeoIP database
 
