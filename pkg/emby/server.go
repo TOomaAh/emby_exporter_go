@@ -196,7 +196,7 @@ func (s *Server) GetLibrarySize(itemID, contentType string) (int, error) {
 
 	req, err := s.requestManager.NewRequest(http.MethodGet, "/Users/"+
 		s.UserID+
-		"/Items?IncludeItemTypes=Movie&Recursive=true&Fields=BasicSyncInfo&EnableImageTypes=Primary&ParentId="+
+		"/Items?Recursive=true&Fields=BasicSyncInfo&EnableImageTypes=Primary&ParentId="+
 		itemID+"&Limit=1&IncludeItemTypes="+includeType[contentType], nil)
 
 	if err != nil {
