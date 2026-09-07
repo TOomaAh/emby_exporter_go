@@ -25,29 +25,23 @@ var (
 
 // GeoIP defines the interface for geolocation services.
 type GeoIP interface {
-	// GetCountryCode returns the ISO code for the country of the given IP.
-	GetCountryCode(ip string) (string, error)
-
-	// GetCountryName returns the English name for the country of the given IP.
-	GetCountryName(ip string) (string, error)
-
-	// GetCity returns the city name for the given IP.
-	GetCity(ip string) (string, error)
-
-	// GetContinent returns the continent name for the given IP.
-	GetContinent(ip string) (string, error)
-
-	// GetLocation returns the latitude and longitude for the given IP.
-	GetLocation(ip string) (float64, float64, error)
-
-	// GetPostalCode returns the postal code for the given IP.
-	GetPostalCode(ip string) (string, error)
-
-	// GetRegion returns the region name for the given IP.
-	GetRegion(ip string) (string, error)
+	// Lookup returns a Record containing all available geolocation information for the given IP.
+	Lookup(ip string) (*Record, error)
 
 	// Close closes the GeoIP database.
 	Close() error
+}
+
+type Record struct {
+	Latitude    float64
+	Longitude   float64
+	City        string
+	Region      string
+	CountryCode string
+}
+
+func LocalRecord() *Record {
+	return &localRecord
 }
 
 // InitGeoIPDatabase initializes the GeoIP database based on configuration.

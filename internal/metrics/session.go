@@ -84,32 +84,13 @@ func (c *SessionCollector) Collect(ch chan<- prometheus.Metric) {
 			season = session.NowPlayingItem.SeasonName
 		}
 
-		latitude, longitude, err := c.geoip.GetLocation(session.RemoteEndPoint)
+		var record *geoip.Record
+
+		record, err := c.geoip.Lookup(session.RemoteEndPoint)
 
 		if err != nil {
-			c.logger.Error("Error getting GeoIP location for %s: %s", session.RemoteEndPoint, err)
-			latitude, longitude = 0.0, 0.0
-		}
-
-		city, err := c.geoip.GetCity(session.RemoteEndPoint)
-
-		if err != nil {
-			c.logger.Error("Error getting GeoIP city for %s: %s", session.RemoteEndPoint, err)
-			city = ""
-		}
-
-		region, err := c.geoip.GetRegion(session.RemoteEndPoint)
-
-		if err != nil {
-			c.logger.Error("Error getting GeoIP region for %s: %s", session.RemoteEndPoint, err)
-			region = ""
-		}
-
-		countryCode, err := c.geoip.GetCountryCode(session.RemoteEndPoint)
-
-		if err != nil {
-			c.logger.Error("Error getting GeoIP country code for %s: %s", session.RemoteEndPoint, err)
-			countryCode = ""
+			c.logger.Error("Error getting GeoIP record for %s: %s", session.RemoteEndPoint, err)
+			record = geoip.LocalRecord()
 		}
 
 		ch <- prometheus.MustNewConstMetric(
@@ -118,11 +99,11 @@ func (c *SessionCollector) Collect(ch chan<- prometheus.Metric) {
 			session.Client,
 			strconv.FormatBool(session.PlayState.IsPaused),
 			session.RemoteEndPoint,
-			strconv.FormatFloat(latitude, 'f', 6, 64),
-			strconv.FormatFloat(longitude, 'f', 6, 64),
-			city,
-			region,
-			countryCode,
+			strconv.FormatFloat(record.Latitude, 'f', 6, 64),
+			strconv.FormatFloat(record.Longitude, 'f', 6, 64),
+			record.City,
+			record.Region,
+			record.CountryCode,
 			session.NowPlayingItem.Name,
 			tvshow,
 			season,
@@ -149,4 +130,13 @@ func (c *SessionCollector) Collect(ch chan<- prometheus.Metric) {
 		c.count,
 		prometheus.GaugeValue,
 		float64(count))
+}
+
+func (c *SessionCollector) getRecord(ip string) *geoip.Record {
+	record, err := c.geoip.Lookup(ip)
+
+	if err != nil {
+		return geoip.LocalRecord()
+	}
+	return record
 }

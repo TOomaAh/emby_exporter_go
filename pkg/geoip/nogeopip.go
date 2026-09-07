@@ -15,39 +15,8 @@ func NewNoGeoIP() *NoGeoIP {
 	}
 }
 
-// GetCountryCode returns an empty string and nil error for NoGeoIP.
-func (n *NoGeoIP) GetCountryCode(ip string) (string, error) {
-	return "", nil
-}
-
-// GetCountryName returns an empty string and nil error for NoGeoIP.
-func (n *NoGeoIP) GetCountryName(ip string) (string, error) {
-	return "", nil
-}
-
-// GetCity returns an empty string and nil error for NoGeoIP.
-func (n *NoGeoIP) GetCity(ip string) (string, error) {
-	return "", nil
-}
-
-// GetContinent returns an empty string and nil error for NoGeoIP.
-func (n *NoGeoIP) GetContinent(ip string) (string, error) {
-	return "", nil
-}
-
-// GetLocation returns zeros and nil error for NoGeoIP.
-func (n *NoGeoIP) GetLocation(ip string) (float64, float64, error) {
-	return 0, 0, nil
-}
-
-// GetPostalCode returns an empty string and nil error for NoGeoIP.
-func (n *NoGeoIP) GetPostalCode(ip string) (string, error) {
-	return "", nil
-}
-
-// GetRegion returns an empty string and nil error for NoGeoIP.
-func (n *NoGeoIP) GetRegion(ip string) (string, error) {
-	return "", nil
+func (n *NoGeoIP) Lookup(ip string) (*Record, error) {
+	return nil, nil
 }
 
 // Close is a no-op for NoGeoIP.

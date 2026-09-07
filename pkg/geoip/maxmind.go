@@ -41,6 +41,13 @@ var (
 
 	shaFileName = "geoip_update.mmdb.sha256" // Consistent file name for the SHA256 checksum
 
+	localRecord = Record{
+		Latitude:    0,
+		Longitude:   0,
+		City:        "Local",
+		Region:      "Local",
+		CountryCode: "Local",
+	}
 )
 
 // GeoIPManager manages the loading and updating of the GeoIP database.
@@ -199,140 +206,39 @@ func (g *GeoIPManager) Close() error {
 	return nil
 }
 
-// GetCountryCode returns the ISO code for the country of the given IP.
-func (g *GeoIPManager) GetCountryCode(ipStr string) (string, error) {
+func (g *GeoIPManager) Lookup(ipStr string) (*Record, error) {
 	ip := net.ParseIP(ipStr)
 	if ip == nil {
-		return "", ErrInvalidIPAddress
+		return nil, ErrInvalidIPAddress
 	}
 
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-
-	record, err := g.db.Country(ip)
-	if err != nil {
-		g.logger.Error("Error getting country code: %s", err)
-		return "", err
-	}
-
-	return record.Country.IsoCode, nil
-}
-
-// GetCountryName returns the English name for the country of the given IP.
-func (g *GeoIPManager) GetCountryName(ipStr string) (string, error) {
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
-		return "", ErrInvalidIPAddress
-	}
-
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-
-	record, err := g.db.Country(ip)
-	if err != nil {
-		g.logger.Error("Error getting country name: %s", err)
-		return "", err
-	}
-
-	return record.Country.Names["en"], nil
-}
-
-// GetCity returns the city name for the given IP.
-func (g *GeoIPManager) GetCity(ipStr string) (string, error) {
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
-		return "", ErrInvalidIPAddress
+	if ip.IsLoopback() || ip.IsPrivate() {
+		g.logger.Debug("IP %s is loopback or private, skipping GeoIP lookup", ipStr)
+		return &localRecord, nil
 	}
 
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 
 	record, err := g.db.City(ip)
+
 	if err != nil {
-		g.logger.Error("Error getting city: %s", err)
-		return "", err
+		g.logger.Error("Error looking up IP: %s", err)
+		return nil, err
 	}
 
-	return record.City.Names["en"], nil
-}
-
-// GetContinent returns the continent name for the given IP.
-func (g *GeoIPManager) GetContinent(ipStr string) (string, error) {
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
-		return "", ErrInvalidIPAddress
+	if record == nil {
+		g.logger.Error("No record found for IP: %s", ipStr)
+		return nil, fmt.Errorf("no record found for IP: %s", ipStr)
 	}
 
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-
-	record, err := g.db.City(ip)
-	if err != nil {
-		g.logger.Error("Error getting continent: %s", err)
-		return "", err
-	}
-
-	return record.Continent.Names["en"], nil
-}
-
-// GetLocation returns the latitude and longitude for the given IP.
-func (g *GeoIPManager) GetLocation(ipStr string) (float64, float64, error) {
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
-		return 0, 0, ErrInvalidIPAddress
-	}
-
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-
-	record, err := g.db.City(ip)
-	if err != nil {
-		g.logger.Error("Error getting location: %s", err)
-		return 0, 0, err
-	}
-
-	return record.Location.Latitude, record.Location.Longitude, nil
-}
-
-// GetPostalCode returns the postal code for the given IP.
-func (g *GeoIPManager) GetPostalCode(ipStr string) (string, error) {
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
-		return "", ErrInvalidIPAddress
-	}
-
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-
-	record, err := g.db.City(ip)
-	if err != nil {
-		g.logger.Error("Error getting postal code: %s", err)
-		return "", err
-	}
-
-	return record.Postal.Code, nil
-}
-
-// GetRegion returns the region name for the given IP.
-func (g *GeoIPManager) GetRegion(ipStr string) (string, error) {
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
-		return "", ErrInvalidIPAddress
-	}
-
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-
-	record, err := g.db.City(ip)
-	if err != nil {
-		g.logger.Error("Error getting region: %s", err)
-		return "", err
-	}
-
-	if len(record.Subdivisions) == 0 {
-		return "", nil
-	}
-	return record.Subdivisions[0].Names["en"], nil
+	return &Record{
+		Latitude:    record.Location.Latitude,
+		Longitude:   record.Location.Longitude,
+		City:        record.City.Names["en"],
+		Region:      record.Subdivisions[0].Names["en"],
+		CountryCode: record.Country.IsoCode,
+	}, nil
 }
 
 // NewMaxmindClient creates a new client for MaxMind API.
