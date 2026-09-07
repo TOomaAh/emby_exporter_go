@@ -164,7 +164,7 @@ func Run(cfg *conf.Config, geoIp geoip.GeoIP, log logger.Interface) {
 
 	// listen for signals
 	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL)
+	signal.Notify(ch, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
