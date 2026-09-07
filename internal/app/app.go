@@ -47,8 +47,7 @@ func (pm *PingManager) SetPinging(active bool) {
 }
 
 // logRequest is a middleware that logs each HTTP request.
-func logRequest(handler http.Handler) http.Handler {
-	log := logger.New("info")
+func logRequest(handler http.Handler, log logger.Interface) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Info("%s %s %s", r.RemoteAddr, r.Method, r.URL)
 		handler.ServeHTTP(w, r)
@@ -56,14 +55,14 @@ func logRequest(handler http.Handler) http.Handler {
 }
 
 // metricHandlerMiddleware blocks access to the /metrics endpoint when the server is unreachable.
-// If the server is unreachable, it starts a ping loop (if not already running) and returns a 503 error.
-func metricHandlerMiddleware(next http.Handler, server *emby.Server, cfg *conf.Config, pm *PingManager) http.Handler {
+// If the server is unreachable, it starts a ping loop (if not already running).
+func metricHandlerMiddleware(next http.Handler, server *emby.Server, cfg *conf.Config, pm *PingManager, log logger.Interface) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// If the server is unreachable at the beginning of the request,
 		// start the ping loop (if not already running) and return immediately.
 		if !server.IsReachable {
 			if !pm.IsPinging() {
-				go startPingLoop(server, logger.New("info"), cfg, pm)
+				go startPingLoop(server, log, cfg, pm)
 			}
 			// Here, we return a 200 status.
 			w.WriteHeader(http.StatusOK)
@@ -76,7 +75,7 @@ func metricHandlerMiddleware(next http.Handler, server *emby.Server, cfg *conf.C
 		// After serving, check again: if the server became unreachable during the request,
 		// launch the ping loop (if not already running).
 		if !server.IsReachable && !pm.IsPinging() {
-			go startPingLoop(server, logger.New("info"), cfg, pm)
+			go startPingLoop(server, log, cfg, pm)
 		}
 	})
 }
@@ -150,7 +149,7 @@ func Run(cfg *conf.Config, geoIp geoip.GeoIP, log logger.Interface) {
 	handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
 
 	// Wrap the /metrics endpoint with middleware that controls access based on the server status.
-	http.Handle("/metrics", metricHandlerMiddleware(handler, embyServer, cfg, pingManager))
+	http.Handle("/metrics", metricHandlerMiddleware(handler, embyServer, cfg, pingManager, log))
 
 	// Start the HTTP server.
 	// Note: using the bitwise OR operator (|) here seems to provide a default value.
@@ -165,11 +164,11 @@ func Run(cfg *conf.Config, geoIp geoip.GeoIP, log logger.Interface) {
 
 	// listen for signals
 	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL)
+	signal.Notify(ch, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
-		Handler: logRequest(http.DefaultServeMux),
+		Handler: logRequest(http.DefaultServeMux, log),
 	}
 
 	go func() {

@@ -72,7 +72,7 @@ func (c *SessionCollector) Collect(ch chan<- prometheus.Metric) {
 
 	count := 0
 
-	for i, session := range *sessions {
+	for i, session := range sessions {
 		if !session.HasPlayMethod() {
 			continue
 		}

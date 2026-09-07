@@ -90,12 +90,12 @@ func (l *Logger) Debug(message interface{}, args ...interface{}) {
 
 // Info -.
 func (l *Logger) Info(message string, args ...interface{}) {
-	l.log(message, args...)
+	l.log(l.logger.Info(), message, args...)
 }
 
 // Warn -.
 func (l *Logger) Warn(message string, args ...interface{}) {
-	l.log(message, args...)
+	l.log(l.logger.Warn(), message, args...)
 }
 
 // Error -.
@@ -114,21 +114,21 @@ func (l *Logger) Fatal(message interface{}, args ...interface{}) {
 	os.Exit(1)
 }
 
-func (l *Logger) log(message string, args ...interface{}) {
+func (l *Logger) log(event *zerolog.Event, message string, args ...interface{}) {
 	if len(args) == 0 {
-		l.logger.Info().Msg(message)
+		event.Msg(message)
 	} else {
-		l.logger.Info().Msgf(message, args...)
+		event.Msgf(message, args...)
 	}
 }
 
 func (l *Logger) msg(level string, message interface{}, args ...interface{}) {
 	switch msg := message.(type) {
 	case error:
-		l.log(msg.Error(), args...)
+		l.log(l.logger.Error(), msg.Error(), args...)
 	case string:
-		l.log(msg, args...)
+		l.log(l.logger.Info(), msg, args...)
 	default:
-		l.log(fmt.Sprintf("%s message %v has unknown type %v", level, message, msg), args...)
+		l.log(l.logger.Info(), fmt.Sprintf("%s message %v has unknown type %v", level, message, msg), args...)
 	}
 }
