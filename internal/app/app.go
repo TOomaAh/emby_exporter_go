@@ -55,7 +55,7 @@ func logRequest(handler http.Handler, log logger.Interface) http.Handler {
 }
 
 // metricHandlerMiddleware blocks access to the /metrics endpoint when the server is unreachable.
-// If the server is unreachable, it starts a ping loop (if not already running) and returns a 503 error.
+// If the server is unreachable, it starts a ping loop (if not already running).
 func metricHandlerMiddleware(next http.Handler, server *emby.Server, cfg *conf.Config, pm *PingManager, log logger.Interface) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// If the server is unreachable at the beginning of the request,
