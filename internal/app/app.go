@@ -190,6 +190,4 @@ func Run(cfg *conf.Config, geoIp geoip.GeoIP, log logger.Interface) {
 	} else {
 		log.Info("Server shut down gracefully")
 	}
-
-	geoIp.Close()
 }
