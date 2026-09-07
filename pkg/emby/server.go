@@ -78,7 +78,7 @@ func NewServer(s *ServerInfo, logger logger.Interface) *Server {
 	return server
 }
 
-func (s Server) GetSessions() (*[]entity.Sessions, error) {
+func (s *Server) GetSessions() ([]entity.Sessions, error) {
 
 	var sessions []entity.Sessions
 
@@ -99,7 +99,7 @@ func (s Server) GetSessions() (*[]entity.Sessions, error) {
 		return nil, err
 	}
 
-	return &sessions, nil
+	return sessions, nil
 }
 
 func (s *Server) GetActivity() (*entity.Activity, error) {
