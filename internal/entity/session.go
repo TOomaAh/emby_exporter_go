@@ -128,6 +128,9 @@ func (pm PlayMethod) String() string {
 }
 
 func (s *Sessions) IsEpisode() bool {
+	if s.NowPlayingItem == nil || s.NowPlayingItem.Type == "" {
+		return false
+	}
 	return s.NowPlayingItem.Type == "Episode"
 }
 
@@ -213,6 +216,9 @@ func bitsToHumanReadable(bits uint64) string {
 }
 
 func (s *Sessions) GetBitrateValue() uint64 {
+	if s.NowPlayingItem == nil || s.NowPlayingItem.Bitrate == 0 {
+		return 0
+	}
 	if s.TranscodingInfo == nil {
 		return s.NowPlayingItem.Bitrate
 	}
@@ -232,8 +238,9 @@ func (s *Sessions) GetPlayMethod() string {
 }
 
 func (s *Sessions) GetPercentPlayed() int64 {
-	if s.NowPlayingItem.RunTimeTicks > 0 {
-		return s.PlayState.PositionTicks * 100 / s.NowPlayingItem.RunTimeTicks
+	var runtimeTicks = s.GetRuntimeTick()
+	if runtimeTicks > 0 {
+		return s.PlayState.PositionTicks * 100 / runtimeTicks
 	}
 	return 0
 }
