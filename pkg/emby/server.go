@@ -6,7 +6,6 @@ import (
 	"TOomaAh/emby_exporter_go/pkg/request"
 	"errors"
 	"net/http"
-	"os"
 )
 
 var includeType = map[string]string{
@@ -53,19 +52,16 @@ func NewServer(s *ServerInfo, logger logger.Interface) *Server {
 
 	if s.UserID == "" {
 		logger.Fatal("UserID is not set in the configuration file")
-		os.Exit(1)
 	}
 
 	if s.Token == "" {
 		logger.Fatal("Token is not set in the configuration file")
-		os.Exit(1)
 	}
 
 	client, err := NewEmbyClient(s.Hostname+":"+s.Port, s.Token)
 
 	if err != nil {
 		logger.Fatal("Cannot create a new client for Emby Server " + err.Error())
-		os.Exit(1)
 	}
 
 	server := &Server{
