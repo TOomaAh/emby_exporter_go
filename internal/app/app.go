@@ -110,7 +110,6 @@ func Run(cfg *conf.Config, geoIp geoip.GeoIP, log logger.Interface) {
 	}()
 
 	<-ch
-	geoIp.Close()
 
 	log.Info("Shutting down...")
 
@@ -121,5 +120,9 @@ func Run(cfg *conf.Config, geoIp geoip.GeoIP, log logger.Interface) {
 		log.Error("Error shutting down server: %v", err)
 	} else {
 		log.Info("Server shut down gracefully")
+	}
+
+	if err := geoIp.Close(); err != nil {
+		log.Error("Error closing GeoIP database: %v", err)
 	}
 }
