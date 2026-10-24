@@ -6,6 +6,8 @@ import (
 	"TOomaAh/emby_exporter_go/pkg/request"
 	"errors"
 	"net/http"
+	"sync/atomic"
+	"time"
 )
 
 var includeType = map[string]string{
@@ -28,10 +30,34 @@ const (
 type Server struct {
 	UserID string
 
-	IsReachable    bool
+	reachable      atomic.Bool
+	pinging        atomic.Bool
 	requestManager *request.RequestManager
 
 	Logger logger.Interface
+}
+
+// IsReachable reports whether the last request to the server succeeded.
+func (s *Server) IsReachable() bool {
+	return s.reachable.Load()
+}
+
+// StartPingLoop pings the server every interval until it answers.
+// Only one loop runs at a time: extra calls return immediately.
+func (s *Server) StartPingLoop(interval time.Duration) {
+	if !s.pinging.CompareAndSwap(false, true) {
+		return
+	}
+	defer s.pinging.Store(false)
+
+	for {
+		if err := s.Ping(); err == nil {
+			s.Logger.Info("Server is reachable")
+			return
+		}
+		s.Logger.Error("Server is not reachable, retrying in %s...", interval)
+		time.Sleep(interval)
+	}
 }
 
 type ServerInfo struct {
@@ -66,7 +92,6 @@ func NewServer(s *ServerInfo, logger logger.Interface) *Server {
 
 	server := &Server{
 		UserID:         s.UserID,
-		IsReachable:    false,
 		Logger:         logger,
 		requestManager: request.NewRequestManager(client),
 	}
@@ -89,7 +114,7 @@ func (s *Server) GetSessions() ([]entity.Sessions, error) {
 	if err != nil {
 
 		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.IsReachable = false
+			s.reachable.Store(false)
 		}
 
 		return nil, err
@@ -111,7 +136,7 @@ func (s *Server) GetActivity() (*entity.Activity, error) {
 	if err != nil {
 
 		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.IsReachable = false
+			s.reachable.Store(false)
 		}
 
 		return nil, err
@@ -129,16 +154,8 @@ func (s *Server) Ping() error {
 
 	err = s.requestManager.Do(req, nil)
 
-	if err != nil {
-
-		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.IsReachable = false
-		}
-
-		return err
-	}
-
-	return nil
+	s.reachable.Store(err == nil)
+	return err
 }
 
 func (s *Server) GetLibrary() (*entity.LibraryInfo, error) {
@@ -155,7 +172,7 @@ func (s *Server) GetLibrary() (*entity.LibraryInfo, error) {
 	if err != nil {
 
 		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.IsReachable = false
+			s.reachable.Store(false)
 		}
 
 		return nil, err
@@ -177,7 +194,7 @@ func (s *Server) GetServerInfo() (*entity.SystemInfo, error) {
 	if err != nil {
 
 		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.IsReachable = false
+			s.reachable.Store(false)
 		}
 
 		return nil, err
@@ -204,7 +221,7 @@ func (s *Server) GetLibrarySize(itemID, contentType string) (int, error) {
 	if err != nil {
 
 		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.IsReachable = false
+			s.reachable.Store(false)
 		}
 
 		return 0, err
@@ -229,7 +246,7 @@ func (s *Server) GetAlerts() (*entity.Alert, error) {
 	if err != nil {
 
 		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.IsReachable = false
+			s.reachable.Store(false)
 		}
 
 		return nil, err

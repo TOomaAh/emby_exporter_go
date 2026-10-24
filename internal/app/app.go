@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"sync"
-	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -21,31 +19,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// PingManager encapsulates the ping state and a mutex to ensure only one ping loop is running.
-type PingManager struct {
-	mu        sync.Mutex
-	isPinging int32
-}
-
-// NewPingManager creates a new instance of PingManager.
-func NewPingManager() *PingManager {
-	return &PingManager{}
-}
-
-// IsPinging returns true if a ping loop is already running.
-func (pm *PingManager) IsPinging() bool {
-	return atomic.LoadInt32(&pm.isPinging) == 1
-}
-
-// SetPinging sets the ping loop state (true = running, false = not running).
-func (pm *PingManager) SetPinging(active bool) {
-	if active {
-		atomic.StoreInt32(&pm.isPinging, 1)
-	} else {
-		atomic.StoreInt32(&pm.isPinging, 0)
-	}
-}
-
 // logRequest is a middleware that logs each HTTP request.
 func logRequest(handler http.Handler, log logger.Interface) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -56,26 +29,18 @@ func logRequest(handler http.Handler, log logger.Interface) http.Handler {
 
 // metricHandlerMiddleware blocks access to the /metrics endpoint when the server is unreachable.
 // If the server is unreachable, it starts a ping loop (if not already running).
-func metricHandlerMiddleware(next http.Handler, server *emby.Server, cfg *conf.Config, pm *PingManager, log logger.Interface) http.Handler {
+func metricHandlerMiddleware(next http.Handler, server *emby.Server, interval time.Duration) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// If the server is unreachable at the beginning of the request,
-		// start the ping loop (if not already running) and return immediately.
-		if !server.IsReachable {
-			if !pm.IsPinging() {
-				go startPingLoop(server, log, cfg, pm)
-			}
-			// Here, we return a 200 status.
+		if !server.IsReachable() {
+			go server.StartPingLoop(interval)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
 
-		// If the server is reachable, serve the metrics.
 		next.ServeHTTP(w, r)
 
-		// After serving, check again: if the server became unreachable during the request,
-		// launch the ping loop (if not already running).
-		if !server.IsReachable && !pm.IsPinging() {
-			go startPingLoop(server, log, cfg, pm)
+		if !server.IsReachable() {
+			go server.StartPingLoop(interval)
 		}
 	})
 }
@@ -83,33 +48,6 @@ func metricHandlerMiddleware(next http.Handler, server *emby.Server, cfg *conf.C
 // HealthCheck simply returns HTTP 200, which can be used to verify the container's health.
 func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-}
-
-// startPingLoop pings the server at regular intervals until it responds.
-// This function blocks until the server becomes reachable and updates server.IsReachable.
-func startPingLoop(server *emby.Server, log logger.Interface, cfg *conf.Config, pm *PingManager) {
-	// Ensure that no other ping loop is already running.
-	if pm.IsPinging() {
-		return
-	}
-	pm.mu.Lock()
-	pm.SetPinging(true)
-	defer func() {
-		pm.SetPinging(false)
-		pm.mu.Unlock()
-	}()
-
-	for {
-		if err := server.Ping(); err != nil {
-			log.Error("Server is not reachable, retrying in %d seconds...", cfg.Options.RetryInterval)
-			server.IsReachable = false
-		} else {
-			server.IsReachable = true
-			log.Info("Server is reachable")
-			break
-		}
-		time.Sleep(time.Duration(cfg.Options.RetryInterval) * time.Second)
-	}
 }
 
 // Run initializes the Prometheus collectors and starts the HTTP server to export metrics.
@@ -122,18 +60,13 @@ func Run(cfg *conf.Config, geoIp geoip.GeoIP, log logger.Interface) {
 		Token:    cfg.Server.Token,
 	}, log)
 
-	// Create a new PingManager instance.
-	pingManager := NewPingManager()
+	retryInterval := time.Duration(cfg.Options.RetryInterval) * time.Second
 
-	// Perform an initial ping test at startup.
 	if err := embyServer.Ping(); err != nil {
-		log.Error("Initial ping failed: %v", err)
-		embyServer.IsReachable = false
-		// Start the ping loop in the background.
-		go startPingLoop(embyServer, log, cfg, pingManager)
+		log.Error("Initial ping to Emby server failed: %s", err)
+		go embyServer.StartPingLoop(retryInterval)
 	} else {
-		embyServer.IsReachable = true
-		log.Info("Initial ping succeeded, server is reachable")
+		log.Info("Successfully connected to Emby server")
 	}
 
 	// Initialize collectors.
@@ -149,10 +82,9 @@ func Run(cfg *conf.Config, geoIp geoip.GeoIP, log logger.Interface) {
 	handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
 
 	// Wrap the /metrics endpoint with middleware that controls access based on the server status.
-	http.Handle("/metrics", metricHandlerMiddleware(handler, embyServer, cfg, pingManager, log))
+	http.Handle("/metrics", metricHandlerMiddleware(handler, embyServer, retryInterval))
 
 	// Start the HTTP server.
-	// Note: using the bitwise OR operator (|) here seems to provide a default value.
 	port := cfg.Exporter.Port
 
 	if port == 0 {
