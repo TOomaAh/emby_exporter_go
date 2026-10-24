@@ -6,6 +6,7 @@ import (
 	"TOomaAh/emby_exporter_go/pkg/request"
 	"errors"
 	"net/http"
+	"net/url"
 	"sync/atomic"
 	"time"
 )
@@ -101,48 +102,15 @@ func NewServer(s *ServerInfo, logger logger.Interface) *Server {
 
 func (s *Server) GetSessions() ([]entity.Sessions, error) {
 
-	var sessions []entity.Sessions
-
-	req, err := s.requestManager.NewRequest(http.MethodGet, sessionPath, nil)
-
+	sessions, err := get[[]entity.Sessions](s, sessionPath)
 	if err != nil {
 		return nil, err
 	}
-
-	err = s.requestManager.Do(req, &sessions)
-
-	if err != nil {
-
-		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.reachable.Store(false)
-		}
-
-		return nil, err
-	}
-
-	return sessions, nil
+	return *sessions, nil
 }
 
 func (s *Server) GetActivity() (*entity.Activity, error) {
-	var activity entity.Activity
-	req, err := s.requestManager.NewRequest(http.MethodGet, activityPath, nil)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.requestManager.Do(req, &activity)
-
-	if err != nil {
-
-		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.reachable.Store(false)
-		}
-
-		return nil, err
-	}
-
-	return &activity, nil
+	return get[entity.Activity](s, activityPath)
 }
 
 func (s *Server) Ping() error {
@@ -159,97 +127,45 @@ func (s *Server) Ping() error {
 }
 
 func (s *Server) GetLibrary() (*entity.LibraryInfo, error) {
-	var library entity.LibraryInfo
-
-	req, err := s.requestManager.NewRequest(http.MethodGet, libraryPath, nil)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.requestManager.Do(req, &library)
-
-	if err != nil {
-
-		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.reachable.Store(false)
-		}
-
-		return nil, err
-	}
-
-	return &library, nil
+	return get[entity.LibraryInfo](s, libraryPath)
 }
 
 func (s *Server) GetServerInfo() (*entity.SystemInfo, error) {
-	var systemInfo entity.SystemInfo
-	req, err := s.requestManager.NewRequest(http.MethodGet, systemInfoPath, nil)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.requestManager.Do(req, &systemInfo)
-
-	if err != nil {
-
-		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.reachable.Store(false)
-		}
-
-		return nil, err
-	}
-
-	return &systemInfo, nil
+	return get[entity.SystemInfo](s, systemInfoPath)
 }
 
 func (s *Server) GetLibrarySize(itemID, contentType string) (int, error) {
-	var librarySize int
-	var library entity.Library
+	q := url.Values{}
+	q.Set("Recursive", "true")
+	q.Set("ParentId", itemID)
+	q.Set("Limit", "1")
+	q.Set("IncludeItemTypes", includeType[contentType])
 
-	req, err := s.requestManager.NewRequest(http.MethodGet, "/Users/"+
-		s.UserID+
-		"/Items?Recursive=true&Fields=BasicSyncInfo&EnableImageTypes=Primary&ParentId="+
-		itemID+"&Limit=1&IncludeItemTypes="+includeType[contentType], nil)
-
+	library, err := get[entity.Library](s, "/Users/"+url.PathEscape(s.UserID)+"/Items?"+q.Encode())
 	if err != nil {
 		return 0, err
 	}
-
-	err = s.requestManager.Do(req, &library)
-
-	if err != nil {
-
-		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.reachable.Store(false)
-		}
-
-		return 0, err
-	}
-
-	librarySize = library.TotalRecordCount
-
-	return librarySize, nil
+	return library.TotalRecordCount, nil
 }
 
 func (s *Server) GetAlerts() (*entity.Alert, error) {
-	var alert entity.Alert
-	req, err := s.requestManager.NewRequest(http.MethodGet, systemAlertPath, nil)
+	return get[entity.Alert](s, systemAlertPath)
+}
 
+func get[T any](s *Server, path string) (*T, error) {
+	req, err := s.requestManager.NewRequest(http.MethodGet, path, nil)
 	if err != nil {
-
 		return nil, err
 	}
 
-	err = s.requestManager.Do(req, &alert)
-
-	if err != nil {
-
-		if !errors.Is(err, request.ErrorCannotReadBody) {
+	var v T
+	if err := s.requestManager.Do(req, &v); err != nil {
+		var urlErr *url.Error
+		if errors.As(err, &urlErr) {
 			s.reachable.Store(false)
 		}
-
 		return nil, err
 	}
-	return &alert, nil
+
+	return &v, nil
 }

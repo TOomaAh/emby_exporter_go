@@ -3,6 +3,7 @@ package request
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -78,6 +79,10 @@ func (r *RequestManager) Do(req *http.Request, v interface{}) error {
 		return err
 	}
 
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("unexpected status %d", resp.StatusCode)
+	}
+
 	if v != nil {
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
@@ -97,6 +102,10 @@ func (r *RequestManager) DoFile(req *http.Request, out io.Writer) error {
 
 	if err := parseStatusCode(resp.StatusCode); err != nil {
 		return err
+	}
+
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("unexpected status %d", resp.StatusCode)
 	}
 
 	if _, err := io.Copy(out, resp.Body); err != nil {

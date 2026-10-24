@@ -42,7 +42,7 @@ func (c *LibraryCollector) Collect(ch chan<- prometheus.Metric) {
 
 		if err != nil {
 			c.logger.Error("Error while getting library size: %s", err)
-			return
+			continue
 		}
 
 		ch <- prometheus.MustNewConstMetric(
