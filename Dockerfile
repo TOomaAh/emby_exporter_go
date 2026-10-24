@@ -3,7 +3,8 @@ FROM golang:1.26-alpine
 WORKDIR /app
 COPY . .
 RUN go mod download
-RUN go build -o emby_exporter ./cmd/emby_exporter_go
+ARG VERSION=dev
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o emby_exporter ./cmd/emby_exporter_go
 RUN apk update && apk add dos2unix tzdata && dos2unix entrypoint.sh
 
 

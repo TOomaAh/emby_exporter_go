@@ -60,6 +60,8 @@ jobs:
           context: .
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
           outputs: type=image,name=bagul/goemby_exporter,push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
