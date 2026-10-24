@@ -113,7 +113,7 @@ func Run(cfg *conf.Config, geoIp geoip.GeoIP, log logger.Interface) {
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Error("HTTP server error: %v", err)
+			log.Fatal("HTTP server error: %v", err)
 		}
 	}()
 
