@@ -23,4 +23,7 @@ COPY geoip.mmdb /app/geoip.mmdb
 
 EXPOSE 9210
 
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD wget -qO /dev/null http://localhost:9210/health || exit 1
+
 ENTRYPOINT ["/app/emby_exporter"]

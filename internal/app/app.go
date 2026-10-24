@@ -91,6 +91,9 @@ func Run(cfg *conf.Config, geoIp geoip.GeoIP, log logger.Interface) {
 
 	// Wrap the /metrics endpoint with middleware that controls access based on the server status.
 	http.Handle("/metrics", metricHandlerMiddleware(handler, upHandler, embyServer, retryInterval))
+	if cfg.Options.HealthCheck {
+		http.HandleFunc("/health", HealthCheck)
+	}
 
 	// Start the HTTP server.
 	port := cfg.Exporter.Port

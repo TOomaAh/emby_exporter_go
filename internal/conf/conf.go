@@ -25,7 +25,7 @@ type Config struct {
 	Options struct {
 		RetryInterval int  `yaml:"retryInterval" default:"10"`
 		GeoIP         bool `yaml:"geoip" default:"false"`
-		HealthCheck   bool `yaml:"healthcheck" default:"false"`
+		HealthCheck   bool `yaml:"healthcheck" default:"true"`
 		GeoIPOptions  struct {
 			AccountId  string `yaml:"accountId"`
 			LicenseKey string `yaml:"licenseKey"`
@@ -46,6 +46,9 @@ func NewConfig(path string) (*Config, error) {
 	defer file.Close()
 
 	var cfg Config
+	// Defaults set before decoding are kept when the key is missing from the file.
+	cfg.Options.HealthCheck = true
+
 	decoder := yaml.NewDecoder(file)
 	if err := decoder.Decode(&cfg); err != nil {
 		return nil, fmt.Errorf("cannot decode config file: %w", err)
