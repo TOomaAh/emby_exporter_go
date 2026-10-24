@@ -29,11 +29,11 @@ func logRequest(handler http.Handler, log logger.Interface) http.Handler {
 
 // metricHandlerMiddleware blocks access to the /metrics endpoint when the server is unreachable.
 // If the server is unreachable, it starts a ping loop (if not already running).
-func metricHandlerMiddleware(next http.Handler, server *emby.Server, interval time.Duration) http.Handler {
+func metricHandlerMiddleware(next http.Handler, unreachable http.Handler, server *emby.Server, interval time.Duration) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !server.IsReachable() {
 			go server.StartPingLoop(interval)
-			w.WriteHeader(http.StatusOK)
+			unreachable.ServeHTTP(w, r)
 			return
 		}
 
@@ -75,14 +75,21 @@ func Run(cfg *conf.Config, geoIp geoip.GeoIP, log logger.Interface) {
 	libraryCollector := metrics.NewLibraryCollector(embyServer, log)
 	sessionCollector := metrics.NewSessionCollector(embyServer, geoIp, log)
 	systemInfoCollector := metrics.NewSystemInfoCollector(embyServer, log)
+	upCollector := metrics.NewUpCollector(embyServer)
 
 	// Create a Prometheus registry and register the collectors.
 	registry := prometheus.NewRegistry()
-	registry.MustRegister(alertCollector, libraryCollector, sessionCollector, systemInfoCollector, activityCollector)
+	registry.MustRegister(alertCollector, libraryCollector, sessionCollector, systemInfoCollector, activityCollector, upCollector)
+
+	// Registry served while Emby is unreachable: only emby_up.
+	upRegistry := prometheus.NewRegistry()
+	upRegistry.MustRegister(upCollector)
+
 	handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
+	upHandler := promhttp.HandlerFor(upRegistry, promhttp.HandlerOpts{})
 
 	// Wrap the /metrics endpoint with middleware that controls access based on the server status.
-	http.Handle("/metrics", metricHandlerMiddleware(handler, embyServer, retryInterval))
+	http.Handle("/metrics", metricHandlerMiddleware(handler, upHandler, embyServer, retryInterval))
 
 	// Start the HTTP server.
 	port := cfg.Exporter.Port
