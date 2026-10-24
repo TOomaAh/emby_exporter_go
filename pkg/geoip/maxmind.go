@@ -48,6 +48,14 @@ var (
 		Region:      "Local",
 		CountryCode: "Local",
 	}
+
+	disabledRecord = Record{
+		Latitude:    0,
+		Longitude:   0,
+		City:        "N/A",
+		Region:      "N/A",
+		CountryCode: "N/A",
+	}
 )
 
 // GeoIPManager manages the loading and updating of the GeoIP database.
@@ -220,6 +228,10 @@ func (g *GeoIPManager) Lookup(ipStr string) (*Record, error) {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 
+	if g.db == nil {
+		return nil, ErrDatabaseNotInitialized
+	}
+
 	record, err := g.db.City(ip)
 
 	if err != nil {
@@ -232,11 +244,16 @@ func (g *GeoIPManager) Lookup(ipStr string) (*Record, error) {
 		return nil, fmt.Errorf("no record found for IP: %s", ipStr)
 	}
 
+	region := ""
+	if len(record.Subdivisions) > 0 {
+		region = record.Subdivisions[0].Names["en"]
+	}
+
 	return &Record{
 		Latitude:    record.Location.Latitude,
 		Longitude:   record.Location.Longitude,
 		City:        record.City.Names["en"],
-		Region:      record.Subdivisions[0].Names["en"],
+		Region:      region,
 		CountryCode: record.Country.IsoCode,
 	}, nil
 }

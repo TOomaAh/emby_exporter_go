@@ -16,6 +16,9 @@ var (
 	// ErrDatabaseNotInitialized is returned when the GeoIP database has not been initialized.
 	ErrDatabaseNotInitialized = errors.New("GeoIP database is not initialized")
 
+	// ErrGeoIPDisabled is returned when GeoIP functionality is disabled in the configuration.
+	ErrGeoIPDisabled = errors.New("GeoIP functionality is disabled")
+
 	// geoIPInstance holds the singleton instance of the GeoIP database.
 	geoIPInstance GeoIP
 
@@ -42,6 +45,10 @@ type Record struct {
 
 func LocalRecord() *Record {
 	return &localRecord
+}
+
+func DisabledRecord() *Record {
+	return &disabledRecord
 }
 
 // InitGeoIPDatabase initializes the GeoIP database based on configuration.

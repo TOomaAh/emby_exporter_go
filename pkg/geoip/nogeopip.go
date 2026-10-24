@@ -16,7 +16,7 @@ func NewNoGeoIP() *NoGeoIP {
 }
 
 func (n *NoGeoIP) Lookup(ip string) (*Record, error) {
-	return nil, nil
+	return nil, ErrGeoIPDisabled
 }
 
 // Close is a no-op for NoGeoIP.

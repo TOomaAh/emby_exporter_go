@@ -4,6 +4,7 @@ import (
 	"TOomaAh/emby_exporter_go/pkg/emby"
 	"TOomaAh/emby_exporter_go/pkg/geoip"
 	"TOomaAh/emby_exporter_go/pkg/logger"
+	"errors"
 	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -89,8 +90,23 @@ func (c *SessionCollector) Collect(ch chan<- prometheus.Metric) {
 		record, err := c.geoip.Lookup(session.RemoteEndPoint)
 
 		if err != nil {
-			c.logger.Error("Error getting GeoIP record for %s: %s", session.RemoteEndPoint, err)
-			record = geoip.LocalRecord()
+			if errors.Is(err, geoip.ErrGeoIPDisabled) {
+				record = geoip.DisabledRecord()
+			} else {
+				c.logger.Error("Error getting GeoIP record for %s: %s", session.RemoteEndPoint, err)
+				record = geoip.LocalRecord()
+
+			}
+		}
+
+		nowPlayingItemName := "N/A"
+		if session.NowPlayingItem != nil && session.NowPlayingItem.Name != "" {
+			nowPlayingItemName = session.NowPlayingItem.Name
+		}
+
+		nowPlayingItemType := "N/A"
+		if session.NowPlayingItem != nil && session.NowPlayingItem.Type != "" {
+			nowPlayingItemType = session.NowPlayingItem.Type
 		}
 
 		ch <- prometheus.MustNewConstMetric(
@@ -104,10 +120,10 @@ func (c *SessionCollector) Collect(ch chan<- prometheus.Metric) {
 			record.City,
 			record.Region,
 			record.CountryCode,
-			session.NowPlayingItem.Name,
+			nowPlayingItemName,
 			tvshow,
 			season,
-			session.NowPlayingItem.Type,
+			nowPlayingItemType,
 			strconv.FormatInt(session.GetPercentPlayed(), 10),
 			session.GetPlayMethod(),
 			session.GetTranscodeReason(),
@@ -130,13 +146,4 @@ func (c *SessionCollector) Collect(ch chan<- prometheus.Metric) {
 		c.count,
 		prometheus.GaugeValue,
 		float64(count))
-}
-
-func (c *SessionCollector) getRecord(ip string) *geoip.Record {
-	record, err := c.geoip.Lookup(ip)
-
-	if err != nil {
-		return geoip.LocalRecord()
-	}
-	return record
 }

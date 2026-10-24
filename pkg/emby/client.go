@@ -10,7 +10,6 @@ import (
 type EmbyClient struct {
 	BaseURL    *url.URL
 	APIKey     string
-	headers    http.Header
 	httpClient *http.Client
 }
 
@@ -20,16 +19,9 @@ func NewEmbyClient(baseURL string, apiKey string) (request.Client, error) {
 		return nil, request.ErrorInvalidURL
 	}
 
-	headers := http.Header{}
-	headers.Set("Accept", "application/json")
-	headers.Set("Content-Type", "application/json")
-	headers.Set("User-Agent", "emby_exporter_go")
-	headers.Set("X-Emby-Token", apiKey)
-
 	return &EmbyClient{
 		BaseURL: parsed,
 		APIKey:  apiKey,
-		headers: headers,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
