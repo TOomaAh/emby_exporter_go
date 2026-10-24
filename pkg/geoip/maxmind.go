@@ -98,9 +98,7 @@ type MaxmindClient struct {
 }
 
 // NewGeoIPManager creates a new GeoIP manager with the specified database file and credentials.
-func NewGeoIPManager(file, accountID, licenseKey string, logLevel string) (*GeoIPManager, error) {
-	l := logger.New(logLevel)
-
+func NewGeoIPManager(file, accountID, licenseKey string, l logger.Interface) (*GeoIPManager, error) {
 	// Create context with cancellation for clean shutdown
 	ctx, cancel := context.WithCancel(context.Background())
 

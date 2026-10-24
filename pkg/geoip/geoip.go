@@ -90,7 +90,7 @@ func InitGeoIPDatabase(cfg *conf.Config, l logger.Interface) (GeoIP, error) {
 	}
 
 	// Try to create a GeoIP manager
-	geoIPManager, err := NewGeoIPManager(dbFile, accountID, licenseKey, "info")
+	geoIPManager, err := NewGeoIPManager(dbFile, accountID, licenseKey, l)
 	if err != nil {
 		l.Error("Failed to initialize GeoIP database: %s", err)
 		noGeo := NewNoGeoIP()

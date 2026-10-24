@@ -1,18 +1,12 @@
 package geoip
 
-import "TOomaAh/emby_exporter_go/pkg/logger"
-
 // NoGeoIP implements the GeoIP interface with no-op functions.
 // It's used when GeoIP functionality is disabled or unavailable.
-type NoGeoIP struct {
-	logger logger.Interface
-}
+type NoGeoIP struct{}
 
 // NewNoGeoIP creates a new NoGeoIP instance.
 func NewNoGeoIP() *NoGeoIP {
-	return &NoGeoIP{
-		logger: logger.New("info"),
-	}
+	return &NoGeoIP{}
 }
 
 func (n *NoGeoIP) Lookup(ip string) (*Record, error) {

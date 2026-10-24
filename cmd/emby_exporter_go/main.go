@@ -14,6 +14,7 @@ import (
 var Options struct {
 	ConfFile          string `short:"c" long:"config" description:"Path of your configuration file" required:"false"`
 	GeoIPDatabaseFile string `short:"g" long:"geoip" description:"Path of your GeoIP database file" required:"false"`
+	LogLevel          string `short:"l" long:"log-level" env:"LOG_LEVEL" description:"Log level (debug, info, warn, error)" required:"false" default:"info"`
 }
 
 func init() {
@@ -32,14 +33,16 @@ func init() {
 }
 
 func main() {
-	l := logger.New("info")
+	if _, err := flags.ParseArgs(&Options, os.Args); err != nil {
+		if fe, ok := err.(*flags.Error); ok && fe.Type == flags.ErrHelp {
+			os.Exit(0)
+		}
+		os.Exit(1)
+	}
+
+	l := logger.New(Options.LogLevel)
 
 	l.Info("Using %s", time.Local.String())
-	_, err := flags.ParseArgs(&Options, os.Args)
-
-	if err != nil {
-		l.Fatal(err)
-	}
 
 	config, err := conf.NewConfig(Options.ConfFile)
 
