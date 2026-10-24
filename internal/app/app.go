@@ -16,6 +16,7 @@ import (
 	"TOomaAh/emby_exporter_go/pkg/logger"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -80,7 +81,7 @@ func Run(cfg *conf.Config, geoIp geoip.GeoIP, log logger.Interface) {
 	// Create a Prometheus registry and register the collectors.
 	registry := prometheus.NewRegistry()
 	registry.MustRegister(alertCollector, libraryCollector, sessionCollector, systemInfoCollector, activityCollector, upCollector)
-
+	registry.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	// Registry served while Emby is unreachable: only emby_up.
 	upRegistry := prometheus.NewRegistry()
 	upRegistry.MustRegister(upCollector)
