@@ -166,15 +166,6 @@ func (s *Sessions) GetTranscodeReason() string {
 	return JoinTranscodeReasons(s.TranscodingInfo.TranscodeReasons)
 }
 
-func (s *Sessions) GetEpisodeNumber() string {
-	if s.IsEpisode() {
-		if s.NowPlayingItem.IndexNumber > 0 {
-			return "Ep. " + strconv.Itoa(s.NowPlayingItem.IndexNumber) + " - "
-		}
-	}
-	return ""
-}
-
 func (s *Sessions) GetRuntimeTick() int64 {
 	if s.NowPlayingItem == nil || s.NowPlayingItem.RunTimeTicks == 0 {
 		return 0

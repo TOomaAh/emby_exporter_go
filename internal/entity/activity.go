@@ -17,10 +17,3 @@ type ActivityItem struct {
 	Date     time.Time `json:"Date"`
 	ID       int       `json:"Id"`
 }
-type ActivityMetric struct {
-	ID       int
-	Name     string
-	Type     string
-	Severity string
-	Date     time.Time
-}

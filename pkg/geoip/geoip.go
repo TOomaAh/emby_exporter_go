@@ -19,9 +19,6 @@ var (
 	// ErrGeoIPDisabled is returned when GeoIP functionality is disabled in the configuration.
 	ErrGeoIPDisabled = errors.New("GeoIP functionality is disabled")
 
-	// geoIPInstance holds the singleton instance of the GeoIP database.
-	geoIPInstance GeoIP
-
 	// geoIPMutex protects access to the geoIPInstance.
 	geoIPMutex sync.RWMutex
 )
@@ -61,7 +58,6 @@ func InitGeoIPDatabase(cfg *conf.Config, l logger.Interface) (GeoIP, error) {
 	if !cfg.Options.GeoIP {
 		l.Info("GeoIP functionality is disabled in configuration")
 		noGeo := NewNoGeoIP()
-		geoIPInstance = noGeo
 		return noGeo, nil
 	}
 
@@ -85,7 +81,6 @@ func InitGeoIPDatabase(cfg *conf.Config, l logger.Interface) (GeoIP, error) {
 	if !fileExists && (accountID == "" || licenseKey == "") {
 		l.Error("GeoIP database file not found and no credentials provided to download it")
 		noGeo := NewNoGeoIP()
-		geoIPInstance = noGeo
 		return noGeo, fmt.Errorf("%w: %s", ErrDatabaseNotFound, dbFile)
 	}
 
@@ -94,24 +89,9 @@ func InitGeoIPDatabase(cfg *conf.Config, l logger.Interface) (GeoIP, error) {
 	if err != nil {
 		l.Error("Failed to initialize GeoIP database: %s", err)
 		noGeo := NewNoGeoIP()
-		geoIPInstance = noGeo
 		return noGeo, fmt.Errorf("failed to initialize GeoIP database: %w", err)
 	}
 
 	l.Info("GeoIP database initialized successfully")
-	geoIPInstance = geoIPManager
 	return geoIPManager, nil
-}
-
-// GetGeoIPDatabase returns the initialized GeoIP database instance.
-// It returns an error if the database has not been initialized.
-func GetGeoIPDatabase() (GeoIP, error) {
-	geoIPMutex.RLock()
-	defer geoIPMutex.RUnlock()
-
-	if geoIPInstance == nil {
-		return nil, ErrDatabaseNotInitialized
-	}
-
-	return geoIPInstance, nil
 }

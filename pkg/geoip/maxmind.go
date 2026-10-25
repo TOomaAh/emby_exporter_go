@@ -77,11 +77,6 @@ type GeoIPUpdater interface {
 	ReadCurrentSHA() string
 }
 
-// NoAuthUpdater implements GeoIPUpdater for scenarios without authentication.
-type NoAuthUpdater struct {
-	Logger logger.Interface
-}
-
 // AuthUpdater implements GeoIPUpdater for authenticated updates.
 type AuthUpdater struct {
 	client     *MaxmindClient
@@ -294,23 +289,6 @@ func (m *MaxmindClient) GetBaseURL() *url.URL {
 // GetClient returns the HTTP client.
 func (m *MaxmindClient) GetClient() *http.Client {
 	return m.client
-}
-
-// NeedUpdate checks if the GeoIP database needs to be updated.
-func (n *NoAuthUpdater) NeedUpdate() (bool, error) {
-	n.Logger.Info("No authentication provided for GeoIP database updates, skipping update check")
-	return false, nil
-}
-
-// Update updates the GeoIP database (no-op for NoAuthUpdater).
-func (n *NoAuthUpdater) Update(geoIPManager *GeoIPManager) error {
-	n.Logger.Info("No authentication provided for GeoIP database updates, skipping update")
-	return nil
-}
-
-// ReadCurrentSHA returns an empty string for NoAuthUpdater.
-func (n *NoAuthUpdater) ReadCurrentSHA() string {
-	return ""
 }
 
 // ReadCurrentSHA reads the current SHA256 checksum of the GeoIP database.
