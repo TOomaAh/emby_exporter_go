@@ -61,6 +61,8 @@ func NewSessionCollector(server *emby.Server, geoIP geoip.GeoIP, logger logger.I
 
 func (c *SessionCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.sessions
+	ch <- c.count
+	ch <- c.sessionsBitrates
 }
 
 func (c *SessionCollector) Collect(ch chan<- prometheus.Metric) {
