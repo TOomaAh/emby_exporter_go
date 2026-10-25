@@ -29,7 +29,7 @@ type Options struct {
 }
 
 type Exporter struct {
-	Port int `yaml:"port" default:"9210"`
+	Port int `yaml:"port"`
 }
 
 // Config holds the overall configuration.

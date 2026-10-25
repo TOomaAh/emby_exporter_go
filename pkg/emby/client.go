@@ -19,11 +19,15 @@ func NewEmbyClient(baseURL string, apiKey string) (request.Client, error) {
 		return nil, request.ErrorInvalidURL
 	}
 
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.MaxIdleConnsPerHost = 10
+
 	return &EmbyClient{
 		BaseURL: parsed,
 		APIKey:  apiKey,
 		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout:   10 * time.Second,
+			Transport: transport,
 		},
 	}, nil
 }

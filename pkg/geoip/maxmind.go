@@ -1,4 +1,3 @@
-// Delete unnecessary logger interfaces
 package geoip
 
 import (
