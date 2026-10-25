@@ -23,7 +23,7 @@ import (
 // logRequest is a middleware that logs each HTTP request.
 func logRequest(handler http.Handler, log logger.Interface) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Info("%s %s %s", r.RemoteAddr, r.Method, r.URL)
+		log.Debug("%s %s %s", r.RemoteAddr, r.Method, r.URL)
 		handler.ServeHTTP(w, r)
 	})
 }
