@@ -32,7 +32,37 @@ env:
   PUSH: ${{ github.event_name != 'pull_request' }}
 
 jobs:
+  # Downloads the MaxMind database at most once a day: every build of the day,
+  # and every platform of each build, reuses it from the Actions cache.
+  geoip:
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.key.outputs.key }}
+    steps:
+      - name: Compute cache key
+        id: key
+        run: echo "key=geolite2-city-$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore MaxMind DB from cache
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: geoip.mmdb
+          key: ${{ steps.key.outputs.key }}
+
+      - name: Download MaxMind DB
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          LICENSE_KEY: ${{ secrets.MAXMIND_LICENSE_KEY }}
+          ACCOUNT_ID: ${{ secrets.MAXMIND_ACCOUNT_ID }}
+        run: |
+          curl -fsSL -o maxmind-db.tar.gz -u "${ACCOUNT_ID}:${LICENSE_KEY}" "https://download.maxmind.com/geoip/databases/GeoLite2-City/download?suffix=tar.gz"
+          tar zxf maxmind-db.tar.gz
+          mv GeoLite2-City_*/GeoLite2-City.mmdb geoip.mmdb
+          rm -rf GeoLite2-City_* maxmind-db.tar.gz
+
   build:
+    needs: geoip
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -66,15 +96,12 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Download MaxMind DB
-        env:
-          LICENSE_KEY: ${{ secrets.MAXMIND_LICENSE_KEY }}
-          ACCOUNT_ID: ${{ secrets.MAXMIND_ACCOUNT_ID }}
-        run: |
-          curl -fsSL -o maxmind-db.tar.gz -u "${ACCOUNT_ID}:${LICENSE_KEY}" "https://download.maxmind.com/geoip/databases/GeoLite2-City/download?suffix=tar.gz"
-          tar zxf maxmind-db.tar.gz
-          mv GeoLite2-City_*/GeoLite2-City.mmdb geoip.mmdb
-          rm -rf GeoLite2-City_* maxmind-db.tar.gz
+      - name: Restore MaxMind DB
+        uses: actions/cache/restore@v4
+        with:
+          path: geoip.mmdb
+          key: ${{ needs.geoip.outputs.cache-key }}
+          fail-on-cache-miss: true
 
       - name: Build and push by digest
         id: build
