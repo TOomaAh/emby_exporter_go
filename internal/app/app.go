@@ -86,13 +86,15 @@ func Run(cfg *conf.Config, geoIp geoip.GeoIP, log logger.Interface) {
 	upRegistry := prometheus.NewRegistry()
 	upRegistry.MustRegister(upCollector)
 
+	serverMux := http.NewServeMux()
+
 	handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
 	upHandler := promhttp.HandlerFor(upRegistry, promhttp.HandlerOpts{})
 
 	// Wrap the /metrics endpoint with middleware that controls access based on the server status.
-	http.Handle("/metrics", metricHandlerMiddleware(handler, upHandler, embyServer, retryInterval))
+	serverMux.Handle("/metrics", metricHandlerMiddleware(handler, upHandler, embyServer, retryInterval))
 	if cfg.Options.HealthCheck {
-		http.HandleFunc("/health", HealthCheck)
+		serverMux.HandleFunc("/health", HealthCheck)
 	}
 
 	// Start the HTTP server.
@@ -110,8 +112,10 @@ func Run(cfg *conf.Config, geoIp geoip.GeoIP, log logger.Interface) {
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", port),
-		Handler: logRequest(http.DefaultServeMux, log),
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		Addr:         fmt.Sprintf(":%d", port),
+		Handler:      logRequest(serverMux, log),
 	}
 
 	go func() {
