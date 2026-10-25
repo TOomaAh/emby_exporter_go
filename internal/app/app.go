@@ -112,8 +112,8 @@ func Run(cfg *conf.Config, geoIp geoip.GeoIP, log logger.Interface) {
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 
 	server := &http.Server{
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 30 * time.Second,
 		Addr:         fmt.Sprintf(":%d", port),
 		Handler:      logRequest(serverMux, log),
 	}

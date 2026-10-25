@@ -84,11 +84,10 @@ func (r *RequestManager) Do(req *http.Request, v interface{}) error {
 	}
 
 	if v != nil {
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return ErrorCannotReadBody
+		if err := json.NewDecoder(resp.Body).Decode(v); err != nil {
+			return err
 		}
-		return json.Unmarshal(body, v)
+		_, _ = io.Copy(io.Discard, resp.Body)
 	}
 	return nil
 }

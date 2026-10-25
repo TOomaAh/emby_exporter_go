@@ -206,10 +206,10 @@ func (g *GeoIPManager) Close() error {
 
 	// Close the database
 	if g.db != nil {
-		return g.db.Close()
+		err := g.db.Close()
+		g.db = nil
+		return err
 	}
-
-	g.db = nil
 
 	return nil
 }
