@@ -73,7 +73,11 @@ func (r *RequestManager) Do(req *http.Request, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		_, _ = io.Copy(io.Discard, resp.Body)
+		resp.Body.Close()
+	}()
 
 	if err := parseStatusCode(resp.StatusCode); err != nil {
 		return err
@@ -87,8 +91,8 @@ func (r *RequestManager) Do(req *http.Request, v interface{}) error {
 		if err := json.NewDecoder(resp.Body).Decode(v); err != nil {
 			return err
 		}
-		_, _ = io.Copy(io.Discard, resp.Body)
 	}
+
 	return nil
 }
 

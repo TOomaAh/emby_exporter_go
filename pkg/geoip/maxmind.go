@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/oschwald/geoip2-golang"
@@ -478,17 +479,9 @@ func (m *AuthUpdater) Update(geoIPManager *GeoIPManager) error {
 	// Replace the old database with the new one
 	if err := os.Rename(mmdbPath, geoIPManager.path); err != nil {
 		// Handle the case where the rename fails due to cross-device link error
-		if strings.Contains(err.Error(), "invalid cross-device link") {
-			// Read the source database file
-			sourceData, readErr := os.ReadFile(mmdbPath)
-			if readErr != nil {
-				return fmt.Errorf("failed to read source database file: %w", readErr)
-			}
-
-			// Write the data to the target path
-			writeErr := os.WriteFile(geoIPManager.path, sourceData, 0644)
-			if writeErr != nil {
-				return fmt.Errorf("failed to write database file: %w", writeErr)
+		if errors.Is(err, syscall.EXDEV) {
+			if err := copyFile(mmdbPath, geoIPManager.path); err != nil {
+				return fmt.Errorf("failed to copy database file: %w", err)
 			}
 
 			// Remove the temporary database file
@@ -519,6 +512,26 @@ func (m *AuthUpdater) Update(geoIPManager *GeoIPManager) error {
 	m.logger.Info("GeoIP database updated successfully")
 
 	return nil
+}
+
+// copyFile copies src to dst without loading the whole file in memory.
+func copyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+
+	if _, err := io.Copy(out, in); err != nil {
+		out.Close()
+		return err
+	}
+	return out.Close()
 }
 
 // downloadAndSaveSHA downloads the SHA256 for the current database and saves it to a file.
