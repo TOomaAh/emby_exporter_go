@@ -19,16 +19,15 @@ concurrency:
 env:
   IMAGE: bagul/goemby_exporter
   # Tags:
-  #   main        -> latest + v1
-  #   other branch -> branch name (slashes become dashes, e.g. feat/x -> feat-x)
-  #   git tag v*   -> same tag + major + latest (e.g. v1.0.14, v1, latest)
+  #   branch       -> branch name (slashes become dashes, e.g. feat/x -> feat-x)
+  #   git tag v*   -> version + major + latest (e.g. v1.0.14, v1, latest)
   #   pull request -> pr-<number> (built, never pushed)
+  # latest and vX only move on a release tag, never on a branch push.
   META_TAGS: |
-    type=raw,value=v1,priority=1000,enable=${{ github.ref == 'refs/heads/main' }}
-    type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
-    type=ref,event=branch,enable=${{ github.ref != 'refs/heads/main' }}
+    type=ref,event=branch
     type=semver,pattern=v{{version}}
     type=semver,pattern=v{{major}}
+    type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
     type=ref,event=pr
   PUSH: ${{ github.event_name != 'pull_request' }}
 
