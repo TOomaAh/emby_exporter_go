@@ -28,7 +28,7 @@ func logRequest(handler http.Handler, log logger.Interface) http.Handler {
 	})
 }
 
-// metricHandlerMiddleware blocks access to the /metrics endpoint when the server is unreachable.
+// metricHandlerMiddleware modify the /metrics endpoint when the server is unreachable.
 // If the server is unreachable, it starts a ping loop (if not already running).
 func metricHandlerMiddleware(next http.Handler, unreachable http.Handler, server *emby.Server, interval time.Duration) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
