@@ -57,7 +57,6 @@ func Run(cfg *conf.Config, geoIp geoip.GeoIP, log logger.Interface) {
 	embyServer := emby.NewServer(&emby.ServerInfo{
 		Hostname: cfg.Server.Hostname,
 		Port:     cfg.Server.Port,
-		UserID:   cfg.Server.UserID,
 		Token:    cfg.Server.Token,
 	}, log)
 

@@ -73,14 +73,13 @@ A command line flag takes precedence over its environment variable.
 
 ## Config file
 
-Only `server.token` and `server.userID` are required, every other key has a default value.
+Only `server.token` are required, every other key has a default value.
 
 ```yaml
 server:
   url: "http://<ip|domain name>" # default: http://localhost
   port: 8096                     # default: 8096
   token: "your token"            # required
-  userID: "your userID"          # required
 exporter:
   port: 9210                     # default: 9210
 options:
@@ -171,11 +170,3 @@ docker run -d \
    -v '/path/to/your/config/:/config/' \
    bagul/goemby_exporter:latest
 ```
-
-### How to get your userID
-
-1. Login to your emby server
-2. Go to the settings page
-3. Go to the profile page
-4. In the url, you will find your userID
-    (ex: http://localhost:8096/web/index.html#!/settings/profile.html?userId=<YOUR_USER_ID>&serverId=xxxxx)

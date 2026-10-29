@@ -61,6 +61,10 @@ func main() {
 		l.Fatal(err)
 	}
 
+	if config.Server.UserID != "" {
+		l.Warn("'userID' is deprecated and will be removed in future versions. Please remove it from your configuration.")
+	}
+
 	geoipDatabase := Options.GeoIPDatabaseFile
 
 	if geoipDatabase != "" {

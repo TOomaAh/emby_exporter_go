@@ -12,11 +12,16 @@ import (
 )
 
 var includeType = map[string]string{
-	"movies":  "Movie",
-	"tvshows": "Series",
-	"boxsets": "BoxSet",
-	"music":   "MusicArtist",
-	"Episode": "TV Show",
+	"movies":      "Movie",
+	"tvshows":     "Series",
+	"boxsets":     "BoxSet",
+	"music":       "MusicArtist",
+	"musicvideos": "MusicVideo",
+	"homevideos":  "Video,Photo",
+	"photos":      "Photo",
+	"books":       "Book",
+	"mixed":       "Movie,Series",
+	"playlists":   "Playlist",
 }
 
 const (
@@ -29,8 +34,6 @@ const (
 )
 
 type Server struct {
-	UserID string
-
 	reachable      atomic.Bool
 	pinging        atomic.Bool
 	requestManager *request.RequestManager
@@ -64,7 +67,6 @@ func (s *Server) StartPingLoop(interval time.Duration) {
 type ServerInfo struct {
 	Hostname string
 	Port     string
-	UserID   string
 	Token    string
 }
 
@@ -75,10 +77,6 @@ func NewServer(s *ServerInfo, logger logger.Interface) *Server {
 
 	if s.Port == "" {
 		s.Port = "8096"
-	}
-
-	if s.UserID == "" {
-		logger.Fatal("UserID is not set in the configuration file")
 	}
 
 	if s.Token == "" {
@@ -92,7 +90,6 @@ func NewServer(s *ServerInfo, logger logger.Interface) *Server {
 	}
 
 	server := &Server{
-		UserID:         s.UserID,
 		Logger:         logger,
 		requestManager: request.NewRequestManager(client),
 	}
@@ -138,10 +135,15 @@ func (s *Server) GetLibrarySize(itemID, contentType string) (int, error) {
 	q := url.Values{}
 	q.Set("Recursive", "true")
 	q.Set("ParentId", itemID)
-	q.Set("Limit", "1")
-	q.Set("IncludeItemTypes", includeType[contentType])
+	q.Set("Limit", "0")
 
-	library, err := get[entity.Library](s, "/Users/"+url.PathEscape(s.UserID)+"/Items?"+q.Encode())
+	if t, ok := includeType[contentType]; ok {
+		q.Set("IncludeItemTypes", t)
+	} else {
+		q.Set("IsFolder", "false")
+	}
+
+	library, err := get[entity.Library](s, "/Items?"+q.Encode())
 	if err != nil {
 		return 0, err
 	}
