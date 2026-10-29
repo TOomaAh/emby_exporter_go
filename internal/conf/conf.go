@@ -10,27 +10,54 @@ import (
 
 // Server holds the Emby server configuration.
 type Server struct {
-	Hostname string `yaml:"url" default:"localhost"`
-	Port     string `yaml:"port" default:"8096"`
+	Hostname string `yaml:"url"`
+	Port     string `yaml:"port"`
 	Token    string `yaml:"token"`
 	UserID   string `yaml:"userID"`
 }
 
+type GeoIPOptions struct {
+	AccountId  string `yaml:"accountId"`
+	LicenseKey string `yaml:"licenseKey"`
+}
+
+type Options struct {
+	RetryInterval int          `yaml:"retryInterval"`
+	GeoIP         bool         `yaml:"geoip"`
+	HealthCheck   bool         `yaml:"healthcheck"`
+	GeoIPOptions  GeoIPOptions `yaml:"geoipOptions,omitempty"`
+}
+
+type Exporter struct {
+	Port int `yaml:"port"`
+}
+
 // Config holds the overall configuration.
 type Config struct {
-	Exporter struct {
-		Port int `yaml:"port" default:"9210"`
-	} `yaml:"exporter,omitempty"`
-	Server  Server `yaml:"server,omitempty"`
-	Options struct {
-		RetryInterval int  `yaml:"retryInterval" default:"10"`
-		GeoIP         bool `yaml:"geoip" default:"false"`
-		HealthCheck   bool `yaml:"healthcheck" default:"false"`
-		GeoIPOptions  struct {
-			AccountId  string `yaml:"accountId"`
-			LicenseKey string `yaml:"licenseKey"`
-		} `yaml:"geoipOptions,omitempty"`
-	} `yaml:"options,omitempty"`
+	Exporter Exporter `yaml:"exporter,omitempty"`
+	Server   Server   `yaml:"server,omitempty"`
+	Options  Options  `yaml:"options,omitempty"`
+}
+
+var defaultConfig = Config{
+	Exporter: Exporter{
+		Port: 9210,
+	},
+	Server: Server{
+		Hostname: "localhost",
+		Port:     "8096",
+		Token:    "",
+		UserID:   "",
+	},
+	Options: Options{
+		RetryInterval: 10,
+		GeoIP:         false,
+		HealthCheck:   true,
+		GeoIPOptions: GeoIPOptions{
+			AccountId:  "",
+			LicenseKey: "",
+		},
+	},
 }
 
 // NewConfig reads the YAML configuration from the specified path and returns a Config instance.
@@ -45,10 +72,10 @@ func NewConfig(path string) (*Config, error) {
 	}
 	defer file.Close()
 
-	var cfg Config
-	decoder := yaml.NewDecoder(file)
-	if err := decoder.Decode(&cfg); err != nil {
-		return nil, fmt.Errorf("cannot decode config file: %w", err)
+	cfg := defaultConfig
+
+	if err := yaml.NewDecoder(file).Decode(&cfg); err != nil {
+		return nil, fmt.Errorf("cannot decode configuration file %s: %w", path, err)
 	}
 
 	// Ensure the server hostname starts with "http://" or "https://".
@@ -57,8 +84,12 @@ func NewConfig(path string) (*Config, error) {
 	}
 
 	// Set default RetryInterval if not provided.
-	if cfg.Options.RetryInterval == 0 {
-		cfg.Options.RetryInterval = 10
+	if cfg.Options.RetryInterval <= 0 {
+		cfg.Options.RetryInterval = defaultConfig.Options.RetryInterval
+	}
+
+	if cfg.Exporter.Port <= 0 {
+		cfg.Exporter.Port = defaultConfig.Exporter.Port
 	}
 
 	return &cfg, nil

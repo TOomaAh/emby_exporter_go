@@ -1,0 +1,10 @@
+.git
+.github
+.vscode
+dist
+example
+*.exe
+*.yml
+*.sha256
+GeoLite2-City.mmdb
+README.md

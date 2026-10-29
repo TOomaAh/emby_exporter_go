@@ -16,8 +16,8 @@ var (
 	// ErrDatabaseNotInitialized is returned when the GeoIP database has not been initialized.
 	ErrDatabaseNotInitialized = errors.New("GeoIP database is not initialized")
 
-	// geoIPInstance holds the singleton instance of the GeoIP database.
-	geoIPInstance GeoIP
+	// ErrGeoIPDisabled is returned when GeoIP functionality is disabled in the configuration.
+	ErrGeoIPDisabled = errors.New("GeoIP functionality is disabled")
 
 	// geoIPMutex protects access to the geoIPInstance.
 	geoIPMutex sync.RWMutex
@@ -25,29 +25,27 @@ var (
 
 // GeoIP defines the interface for geolocation services.
 type GeoIP interface {
-	// GetCountryCode returns the ISO code for the country of the given IP.
-	GetCountryCode(ip string) (string, error)
-
-	// GetCountryName returns the English name for the country of the given IP.
-	GetCountryName(ip string) (string, error)
-
-	// GetCity returns the city name for the given IP.
-	GetCity(ip string) (string, error)
-
-	// GetContinent returns the continent name for the given IP.
-	GetContinent(ip string) (string, error)
-
-	// GetLocation returns the latitude and longitude for the given IP.
-	GetLocation(ip string) (float64, float64, error)
-
-	// GetPostalCode returns the postal code for the given IP.
-	GetPostalCode(ip string) (string, error)
-
-	// GetRegion returns the region name for the given IP.
-	GetRegion(ip string) (string, error)
+	// Lookup returns a Record containing all available geolocation information for the given IP.
+	Lookup(ip string) (*Record, error)
 
 	// Close closes the GeoIP database.
 	Close() error
+}
+
+type Record struct {
+	Latitude    float64
+	Longitude   float64
+	City        string
+	Region      string
+	CountryCode string
+}
+
+func LocalRecord() *Record {
+	return &localRecord
+}
+
+func DisabledRecord() *Record {
+	return &disabledRecord
 }
 
 // InitGeoIPDatabase initializes the GeoIP database based on configuration.
@@ -60,7 +58,6 @@ func InitGeoIPDatabase(cfg *conf.Config, l logger.Interface) (GeoIP, error) {
 	if !cfg.Options.GeoIP {
 		l.Info("GeoIP functionality is disabled in configuration")
 		noGeo := NewNoGeoIP()
-		geoIPInstance = noGeo
 		return noGeo, nil
 	}
 
@@ -84,33 +81,17 @@ func InitGeoIPDatabase(cfg *conf.Config, l logger.Interface) (GeoIP, error) {
 	if !fileExists && (accountID == "" || licenseKey == "") {
 		l.Error("GeoIP database file not found and no credentials provided to download it")
 		noGeo := NewNoGeoIP()
-		geoIPInstance = noGeo
 		return noGeo, fmt.Errorf("%w: %s", ErrDatabaseNotFound, dbFile)
 	}
 
 	// Try to create a GeoIP manager
-	geoIPManager, err := NewGeoIPManager(dbFile, accountID, licenseKey, "info")
+	geoIPManager, err := NewGeoIPManager(dbFile, accountID, licenseKey, l)
 	if err != nil {
 		l.Error("Failed to initialize GeoIP database: %s", err)
 		noGeo := NewNoGeoIP()
-		geoIPInstance = noGeo
 		return noGeo, fmt.Errorf("failed to initialize GeoIP database: %w", err)
 	}
 
 	l.Info("GeoIP database initialized successfully")
-	geoIPInstance = geoIPManager
 	return geoIPManager, nil
-}
-
-// GetGeoIPDatabase returns the initialized GeoIP database instance.
-// It returns an error if the database has not been initialized.
-func GetGeoIPDatabase() (GeoIP, error) {
-	geoIPMutex.RLock()
-	defer geoIPMutex.RUnlock()
-
-	if geoIPInstance == nil {
-		return nil, ErrDatabaseNotInitialized
-	}
-
-	return geoIPInstance, nil
 }

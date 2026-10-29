@@ -1,4 +1,3 @@
-// Delete unnecessary logger interfaces
 package geoip
 
 import (
@@ -18,6 +17,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/oschwald/geoip2-golang"
@@ -41,6 +41,21 @@ var (
 
 	shaFileName = "geoip_update.mmdb.sha256" // Consistent file name for the SHA256 checksum
 
+	localRecord = Record{
+		Latitude:    0,
+		Longitude:   0,
+		City:        "Local",
+		Region:      "Local",
+		CountryCode: "Local",
+	}
+
+	disabledRecord = Record{
+		Latitude:    0,
+		Longitude:   0,
+		City:        "N/A",
+		Region:      "N/A",
+		CountryCode: "N/A",
+	}
 )
 
 // GeoIPManager manages the loading and updating of the GeoIP database.
@@ -61,11 +76,6 @@ type GeoIPUpdater interface {
 	ReadCurrentSHA() string
 }
 
-// NoAuthUpdater implements GeoIPUpdater for scenarios without authentication.
-type NoAuthUpdater struct {
-	Logger logger.Interface
-}
-
 // AuthUpdater implements GeoIPUpdater for authenticated updates.
 type AuthUpdater struct {
 	client     *MaxmindClient
@@ -83,9 +93,7 @@ type MaxmindClient struct {
 }
 
 // NewGeoIPManager creates a new GeoIP manager with the specified database file and credentials.
-func NewGeoIPManager(file, accountID, licenseKey string, logLevel string) (*GeoIPManager, error) {
-	l := logger.New(logLevel)
-
+func NewGeoIPManager(file, accountID, licenseKey string, l logger.Interface) (*GeoIPManager, error) {
 	// Create context with cancellation for clean shutdown
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -193,146 +201,56 @@ func (g *GeoIPManager) Close() error {
 
 	// Close the database
 	if g.db != nil {
-		return g.db.Close()
+		err := g.db.Close()
+		g.db = nil
+		return err
 	}
 
 	return nil
 }
 
-// GetCountryCode returns the ISO code for the country of the given IP.
-func (g *GeoIPManager) GetCountryCode(ipStr string) (string, error) {
+func (g *GeoIPManager) Lookup(ipStr string) (*Record, error) {
 	ip := net.ParseIP(ipStr)
 	if ip == nil {
-		return "", ErrInvalidIPAddress
+		return nil, ErrInvalidIPAddress
+	}
+
+	if ip.IsLoopback() || ip.IsPrivate() {
+		g.logger.Debug("IP %s is loopback or private, skipping GeoIP lookup", ipStr)
+		return &localRecord, nil
 	}
 
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 
-	record, err := g.db.Country(ip)
-	if err != nil {
-		g.logger.Error("Error getting country code: %s", err)
-		return "", err
+	if g.db == nil {
+		return nil, ErrDatabaseNotInitialized
 	}
-
-	return record.Country.IsoCode, nil
-}
-
-// GetCountryName returns the English name for the country of the given IP.
-func (g *GeoIPManager) GetCountryName(ipStr string) (string, error) {
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
-		return "", ErrInvalidIPAddress
-	}
-
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-
-	record, err := g.db.Country(ip)
-	if err != nil {
-		g.logger.Error("Error getting country name: %s", err)
-		return "", err
-	}
-
-	return record.Country.Names["en"], nil
-}
-
-// GetCity returns the city name for the given IP.
-func (g *GeoIPManager) GetCity(ipStr string) (string, error) {
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
-		return "", ErrInvalidIPAddress
-	}
-
-	g.mu.RLock()
-	defer g.mu.RUnlock()
 
 	record, err := g.db.City(ip)
+
 	if err != nil {
-		g.logger.Error("Error getting city: %s", err)
-		return "", err
+		g.logger.Error("Error looking up IP: %s", err)
+		return nil, err
 	}
 
-	return record.City.Names["en"], nil
-}
-
-// GetContinent returns the continent name for the given IP.
-func (g *GeoIPManager) GetContinent(ipStr string) (string, error) {
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
-		return "", ErrInvalidIPAddress
+	if record == nil {
+		g.logger.Error("No record found for IP: %s", ipStr)
+		return nil, fmt.Errorf("no record found for IP: %s", ipStr)
 	}
 
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-
-	record, err := g.db.City(ip)
-	if err != nil {
-		g.logger.Error("Error getting continent: %s", err)
-		return "", err
+	region := ""
+	if len(record.Subdivisions) > 0 {
+		region = record.Subdivisions[0].Names["en"]
 	}
 
-	return record.Continent.Names["en"], nil
-}
-
-// GetLocation returns the latitude and longitude for the given IP.
-func (g *GeoIPManager) GetLocation(ipStr string) (float64, float64, error) {
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
-		return 0, 0, ErrInvalidIPAddress
-	}
-
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-
-	record, err := g.db.City(ip)
-	if err != nil {
-		g.logger.Error("Error getting location: %s", err)
-		return 0, 0, err
-	}
-
-	return record.Location.Latitude, record.Location.Longitude, nil
-}
-
-// GetPostalCode returns the postal code for the given IP.
-func (g *GeoIPManager) GetPostalCode(ipStr string) (string, error) {
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
-		return "", ErrInvalidIPAddress
-	}
-
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-
-	record, err := g.db.City(ip)
-	if err != nil {
-		g.logger.Error("Error getting postal code: %s", err)
-		return "", err
-	}
-
-	return record.Postal.Code, nil
-}
-
-// GetRegion returns the region name for the given IP.
-func (g *GeoIPManager) GetRegion(ipStr string) (string, error) {
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
-		return "", ErrInvalidIPAddress
-	}
-
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-
-	record, err := g.db.City(ip)
-	if err != nil {
-		g.logger.Error("Error getting region: %s", err)
-		return "", err
-	}
-
-	if len(record.Subdivisions) == 0 {
-		return "", nil
-	}
-	return record.Subdivisions[0].Names["en"], nil
+	return &Record{
+		Latitude:    record.Location.Latitude,
+		Longitude:   record.Location.Longitude,
+		City:        record.City.Names["en"],
+		Region:      region,
+		CountryCode: record.Country.IsoCode,
+	}, nil
 }
 
 // NewMaxmindClient creates a new client for MaxMind API.
@@ -370,23 +288,6 @@ func (m *MaxmindClient) GetBaseURL() *url.URL {
 // GetClient returns the HTTP client.
 func (m *MaxmindClient) GetClient() *http.Client {
 	return m.client
-}
-
-// NeedUpdate checks if the GeoIP database needs to be updated.
-func (n *NoAuthUpdater) NeedUpdate() (bool, error) {
-	n.Logger.Info("No authentication provided for GeoIP database updates, skipping update check")
-	return false, nil
-}
-
-// Update updates the GeoIP database (no-op for NoAuthUpdater).
-func (n *NoAuthUpdater) Update(geoIPManager *GeoIPManager) error {
-	n.Logger.Info("No authentication provided for GeoIP database updates, skipping update")
-	return nil
-}
-
-// ReadCurrentSHA returns an empty string for NoAuthUpdater.
-func (n *NoAuthUpdater) ReadCurrentSHA() string {
-	return ""
 }
 
 // ReadCurrentSHA reads the current SHA256 checksum of the GeoIP database.
@@ -555,17 +456,9 @@ func (m *AuthUpdater) Update(geoIPManager *GeoIPManager) error {
 	// Replace the old database with the new one
 	if err := os.Rename(mmdbPath, geoIPManager.path); err != nil {
 		// Handle the case where the rename fails due to cross-device link error
-		if strings.Contains(err.Error(), "invalid cross-device link") {
-			// Read the source database file
-			sourceData, readErr := os.ReadFile(mmdbPath)
-			if readErr != nil {
-				return fmt.Errorf("failed to read source database file: %w", readErr)
-			}
-
-			// Write the data to the target path
-			writeErr := os.WriteFile(geoIPManager.path, sourceData, 0644)
-			if writeErr != nil {
-				return fmt.Errorf("failed to write database file: %w", writeErr)
+		if errors.Is(err, syscall.EXDEV) {
+			if err := copyFile(mmdbPath, geoIPManager.path); err != nil {
+				return fmt.Errorf("failed to copy database file: %w", err)
 			}
 
 			// Remove the temporary database file
@@ -596,6 +489,26 @@ func (m *AuthUpdater) Update(geoIPManager *GeoIPManager) error {
 	m.logger.Info("GeoIP database updated successfully")
 
 	return nil
+}
+
+// copyFile copies src to dst without loading the whole file in memory.
+func copyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+
+	if _, err := io.Copy(out, in); err != nil {
+		out.Close()
+		return err
+	}
+	return out.Close()
 }
 
 // downloadAndSaveSHA downloads the SHA256 for the current database and saves it to a file.

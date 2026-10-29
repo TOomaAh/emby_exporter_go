@@ -4,6 +4,7 @@ import (
 	"TOomaAh/emby_exporter_go/pkg/emby"
 	"TOomaAh/emby_exporter_go/pkg/geoip"
 	"TOomaAh/emby_exporter_go/pkg/logger"
+	"errors"
 	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -60,6 +61,8 @@ func NewSessionCollector(server *emby.Server, geoIP geoip.GeoIP, logger logger.I
 
 func (c *SessionCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.sessions
+	ch <- c.count
+	ch <- c.sessionsBitrates
 }
 
 func (c *SessionCollector) Collect(ch chan<- prometheus.Metric) {
@@ -72,7 +75,7 @@ func (c *SessionCollector) Collect(ch chan<- prometheus.Metric) {
 
 	count := 0
 
-	for i, session := range *sessions {
+	for i, session := range sessions {
 		if !session.HasPlayMethod() {
 			continue
 		}
@@ -84,32 +87,28 @@ func (c *SessionCollector) Collect(ch chan<- prometheus.Metric) {
 			season = session.NowPlayingItem.SeasonName
 		}
 
-		latitude, longitude, err := c.geoip.GetLocation(session.RemoteEndPoint)
+		var record *geoip.Record
+
+		record, err := c.geoip.Lookup(session.RemoteEndPoint)
 
 		if err != nil {
-			c.logger.Error("Error getting GeoIP location for %s: %s", session.RemoteEndPoint, err)
-			latitude, longitude = 0.0, 0.0
+			if errors.Is(err, geoip.ErrGeoIPDisabled) {
+				record = geoip.DisabledRecord()
+			} else {
+				c.logger.Error("Error getting GeoIP record for %s: %s", session.RemoteEndPoint, err)
+				record = geoip.LocalRecord()
+
+			}
 		}
 
-		city, err := c.geoip.GetCity(session.RemoteEndPoint)
-
-		if err != nil {
-			c.logger.Error("Error getting GeoIP city for %s: %s", session.RemoteEndPoint, err)
-			city = ""
+		nowPlayingItemName := "N/A"
+		if session.NowPlayingItem != nil && session.NowPlayingItem.Name != "" {
+			nowPlayingItemName = session.NowPlayingItem.Name
 		}
 
-		region, err := c.geoip.GetRegion(session.RemoteEndPoint)
-
-		if err != nil {
-			c.logger.Error("Error getting GeoIP region for %s: %s", session.RemoteEndPoint, err)
-			region = ""
-		}
-
-		countryCode, err := c.geoip.GetCountryCode(session.RemoteEndPoint)
-
-		if err != nil {
-			c.logger.Error("Error getting GeoIP country code for %s: %s", session.RemoteEndPoint, err)
-			countryCode = ""
+		nowPlayingItemType := "N/A"
+		if session.NowPlayingItem != nil && session.NowPlayingItem.Type != "" {
+			nowPlayingItemType = session.NowPlayingItem.Type
 		}
 
 		ch <- prometheus.MustNewConstMetric(
@@ -118,15 +117,15 @@ func (c *SessionCollector) Collect(ch chan<- prometheus.Metric) {
 			session.Client,
 			strconv.FormatBool(session.PlayState.IsPaused),
 			session.RemoteEndPoint,
-			strconv.FormatFloat(latitude, 'f', 6, 64),
-			strconv.FormatFloat(longitude, 'f', 6, 64),
-			city,
-			region,
-			countryCode,
-			session.NowPlayingItem.Name,
+			strconv.FormatFloat(record.Latitude, 'f', 6, 64),
+			strconv.FormatFloat(record.Longitude, 'f', 6, 64),
+			record.City,
+			record.Region,
+			record.CountryCode,
+			nowPlayingItemName,
 			tvshow,
 			season,
-			session.NowPlayingItem.Type,
+			nowPlayingItemType,
 			strconv.FormatInt(session.GetPercentPlayed(), 10),
 			session.GetPlayMethod(),
 			session.GetTranscodeReason(),

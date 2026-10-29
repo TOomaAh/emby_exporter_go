@@ -3,6 +3,7 @@ package request
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -72,19 +73,26 @@ func (r *RequestManager) Do(req *http.Request, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		_, _ = io.Copy(io.Discard, resp.Body)
+		resp.Body.Close()
+	}()
 
 	if err := parseStatusCode(resp.StatusCode); err != nil {
 		return err
 	}
 
-	if v != nil {
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return ErrorCannotReadBody
-		}
-		return json.Unmarshal(body, v)
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("unexpected status %d", resp.StatusCode)
 	}
+
+	if v != nil {
+		if err := json.NewDecoder(resp.Body).Decode(v); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -97,6 +105,10 @@ func (r *RequestManager) DoFile(req *http.Request, out io.Writer) error {
 
 	if err := parseStatusCode(resp.StatusCode); err != nil {
 		return err
+	}
+
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("unexpected status %d", resp.StatusCode)
 	}
 
 	if _, err := io.Copy(out, resp.Body); err != nil {

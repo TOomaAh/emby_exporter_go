@@ -6,15 +6,22 @@ import (
 	"TOomaAh/emby_exporter_go/pkg/request"
 	"errors"
 	"net/http"
-	"os"
+	"net/url"
+	"sync/atomic"
+	"time"
 )
 
 var includeType = map[string]string{
-	"movies":  "Movie",
-	"tvshows": "Series",
-	"boxsets": "BoxSet",
-	"music":   "MusicArtist",
-	"Episode": "TV Show",
+	"movies":      "Movie",
+	"tvshows":     "Series",
+	"boxsets":     "BoxSet",
+	"music":       "MusicArtist",
+	"musicvideos": "MusicVideo",
+	"homevideos":  "Video,Photo",
+	"photos":      "Photo",
+	"books":       "Book",
+	"mixed":       "Movie,Series",
+	"playlists":   "Playlist",
 }
 
 const (
@@ -27,23 +34,44 @@ const (
 )
 
 type Server struct {
-	UserID string
-
-	IsReachable    bool
+	reachable      atomic.Bool
+	pinging        atomic.Bool
 	requestManager *request.RequestManager
 
 	Logger logger.Interface
 }
 
+// IsReachable reports whether the last request to the server succeeded.
+func (s *Server) IsReachable() bool {
+	return s.reachable.Load()
+}
+
+// StartPingLoop pings the server every interval until it answers.
+// Only one loop runs at a time: extra calls return immediately.
+func (s *Server) StartPingLoop(interval time.Duration) {
+	if !s.pinging.CompareAndSwap(false, true) {
+		return
+	}
+	defer s.pinging.Store(false)
+
+	for {
+		if err := s.Ping(); err == nil {
+			s.Logger.Info("Server is reachable")
+			return
+		}
+		s.Logger.Error("Server is not reachable, retrying in %s...", interval)
+		time.Sleep(interval)
+	}
+}
+
 type ServerInfo struct {
 	Hostname string
 	Port     string
-	UserID   string
 	Token    string
 }
 
 func NewServer(s *ServerInfo, logger logger.Interface) *Server {
-	if s.Hostname == "" || s.Hostname == "http://" {
+	if s.Hostname == "http://" {
 		s.Hostname = "http://localhost"
 	}
 
@@ -51,26 +79,17 @@ func NewServer(s *ServerInfo, logger logger.Interface) *Server {
 		s.Port = "8096"
 	}
 
-	if s.UserID == "" {
-		logger.Fatal("UserID is not set in the configuration file")
-		os.Exit(1)
-	}
-
 	if s.Token == "" {
 		logger.Fatal("Token is not set in the configuration file")
-		os.Exit(1)
 	}
 
 	client, err := NewEmbyClient(s.Hostname+":"+s.Port, s.Token)
 
 	if err != nil {
 		logger.Fatal("Cannot create a new client for Emby Server " + err.Error())
-		os.Exit(1)
 	}
 
 	server := &Server{
-		UserID:         s.UserID,
-		IsReachable:    false,
 		Logger:         logger,
 		requestManager: request.NewRequestManager(client),
 	}
@@ -78,50 +97,17 @@ func NewServer(s *ServerInfo, logger logger.Interface) *Server {
 	return server
 }
 
-func (s Server) GetSessions() (*[]entity.Sessions, error) {
+func (s *Server) GetSessions() ([]entity.Sessions, error) {
 
-	var sessions []entity.Sessions
-
-	req, err := s.requestManager.NewRequest(http.MethodGet, sessionPath, nil)
-
+	sessions, err := get[[]entity.Sessions](s, sessionPath)
 	if err != nil {
 		return nil, err
 	}
-
-	err = s.requestManager.Do(req, &sessions)
-
-	if err != nil {
-
-		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.IsReachable = false
-		}
-
-		return nil, err
-	}
-
-	return &sessions, nil
+	return *sessions, nil
 }
 
 func (s *Server) GetActivity() (*entity.Activity, error) {
-	var activity entity.Activity
-	req, err := s.requestManager.NewRequest(http.MethodGet, activityPath, nil)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.requestManager.Do(req, &activity)
-
-	if err != nil {
-
-		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.IsReachable = false
-		}
-
-		return nil, err
-	}
-
-	return &activity, nil
+	return get[entity.Activity](s, activityPath)
 }
 
 func (s *Server) Ping() error {
@@ -133,110 +119,55 @@ func (s *Server) Ping() error {
 
 	err = s.requestManager.Do(req, nil)
 
-	if err != nil {
-
-		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.IsReachable = false
-		}
-
-		return err
-	}
-
-	return nil
+	s.reachable.Store(err == nil)
+	return err
 }
 
 func (s *Server) GetLibrary() (*entity.LibraryInfo, error) {
-	var library entity.LibraryInfo
-
-	req, err := s.requestManager.NewRequest(http.MethodGet, libraryPath, nil)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.requestManager.Do(req, &library)
-
-	if err != nil {
-
-		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.IsReachable = false
-		}
-
-		return nil, err
-	}
-
-	return &library, nil
+	return get[entity.LibraryInfo](s, libraryPath)
 }
 
 func (s *Server) GetServerInfo() (*entity.SystemInfo, error) {
-	var systemInfo entity.SystemInfo
-	req, err := s.requestManager.NewRequest(http.MethodGet, systemInfoPath, nil)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.requestManager.Do(req, &systemInfo)
-
-	if err != nil {
-
-		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.IsReachable = false
-		}
-
-		return nil, err
-	}
-
-	return &systemInfo, nil
+	return get[entity.SystemInfo](s, systemInfoPath)
 }
 
 func (s *Server) GetLibrarySize(itemID, contentType string) (int, error) {
-	var librarySize int
-	var library entity.Library
+	q := url.Values{}
+	q.Set("Recursive", "true")
+	q.Set("ParentId", itemID)
+	q.Set("Limit", "0")
 
-	req, err := s.requestManager.NewRequest(http.MethodGet, "/Users/"+
-		s.UserID+
-		"/Items?IncludeItemTypes=Movie&Recursive=true&Fields=BasicSyncInfo&EnableImageTypes=Primary&ParentId="+
-		itemID+"&Limit=1&IncludeItemTypes="+includeType[contentType], nil)
+	if t, ok := includeType[contentType]; ok {
+		q.Set("IncludeItemTypes", t)
+	} else {
+		q.Set("IsFolder", "false")
+	}
 
+	library, err := get[entity.Library](s, "/Items?"+q.Encode())
 	if err != nil {
 		return 0, err
 	}
-
-	err = s.requestManager.Do(req, &library)
-
-	if err != nil {
-
-		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.IsReachable = false
-		}
-
-		return 0, err
-	}
-
-	librarySize = library.TotalRecordCount
-
-	return librarySize, nil
+	return library.TotalRecordCount, nil
 }
 
 func (s *Server) GetAlerts() (*entity.Alert, error) {
-	var alert entity.Alert
-	req, err := s.requestManager.NewRequest(http.MethodGet, systemAlertPath, nil)
+	return get[entity.Alert](s, systemAlertPath)
+}
 
+func get[T any](s *Server, path string) (*T, error) {
+	req, err := s.requestManager.NewRequest(http.MethodGet, path, nil)
 	if err != nil {
-
 		return nil, err
 	}
 
-	err = s.requestManager.Do(req, &alert)
-
-	if err != nil {
-
-		if !errors.Is(err, request.ErrorCannotReadBody) {
-			s.IsReachable = false
+	var v T
+	if err := s.requestManager.Do(req, &v); err != nil {
+		var urlErr *url.Error
+		if errors.As(err, &urlErr) {
+			s.reachable.Store(false)
 		}
-
 		return nil, err
 	}
-	return &alert, nil
+
+	return &v, nil
 }

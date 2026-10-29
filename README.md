@@ -14,10 +14,35 @@ I will continue to respond to issues and try to solve your problems or improve i
 
 Thank you for your understanding.
 
-### Get metrics
+### Endpoints
 
-You can access the metrics on the following url:
-`http://ip:9210/metrics`
+| Endpoint | Description |
+|---|---|
+| `http://ip:9210/metrics` | Prometheus metrics |
+| `http://ip:9210/health` | Returns `200` while the exporter is running (can be disabled with `options.healthcheck: false`) |
+
+### Metrics
+
+| Metric | Description |
+|---|---|
+| `emby_up` | `1` if the Emby server is reachable, `0` otherwise |
+| `emby_system_info` | Emby version, WAN/LAN addresses, pending update/restart |
+| `emby_sessions` | Active playback sessions (user, client, media, play method, location…) |
+| `emby_sessions_count` | Number of active playback sessions |
+| `emby_sessions_bitrate` | Bitrate of each session, in kilobits |
+| `emby_media_item` | Number of items in each library |
+| `emby_activity` | Latest entries of the activity log |
+| `emby_alert` | Latest system alerts |
+
+The exporter also exposes the standard `go_*` and `process_*` metrics (memory, goroutines, CPU…).
+
+When the Emby server is unreachable, `/metrics` only returns `emby_up 0` and the exporter retries every `retryInterval` seconds until the server answers again. You can alert on it with:
+
+```yaml
+- alert: EmbyDown
+  expr: emby_up == 0
+  for: 2m
+```
 
 ## Grafana Dashboard
 
@@ -28,43 +53,79 @@ You can access the metrics on the following url:
 I thank [jaycedk](https://github.com/jaycedk) for the dashboard (it's his)
 
 
-## For build this project. It's simple
-`go get &&
-go build .`
-
-
-## To build the docker image (it's already build but just if you want):
-
-To build the exporter you need a maxmind database. To do this, go to [Maxmind](https://www.maxmind.com/en/home) and download the GeoLite2 City database.
-
-The ".mmdb" file should then be placed at the root of the project with the following name: `geoip.mmdb`
-
-
-`docker build -t emby_exporter .`
-
-### RUN Docker container
+## Build this project
 
 ```
-docker run -d -it \
+go build -o emby_exporter ./cmd/emby_exporter_go
+```
+
+## Command line options and environment variables
+
+| Flag | Environment variable | Default | Description |
+|---|---|---|---|
+| `-c`, `--config` | `CONFIG_FILE` | `./config.yml` | Path of the configuration file |
+| `-l`, `--log-level` | `LOG_LEVEL` | `info` | Log level: `debug`, `info`, `warn`, `error` |
+| `-g`, `--geoip` | `GEOIP_DB` | `geoip.mmdb` | Path of the GeoIP database file |
+| `-v`, `--version` | | | Print the version and exit |
+| | `TZ` | `UTC` | Time zone used for the dates of activities and alerts (ex: `Europe/Paris`) |
+
+A command line flag takes precedence over its environment variable.
+
+## Config file
+
+Only `server.token` is required, every other key has a default value.
+
+```yaml
+server:
+  url: "http://<ip|domain name>" # default: http://localhost
+  port: 8096                     # default: 8096
+  token: "your token"            # required
+exporter:
+  port: 9210                     # default: 9210
+options:
+  retryInterval: 10              # seconds between two pings while Emby is unreachable, default: 10
+  healthcheck: true              # expose /health, default: true
+  geoip: false                   # enable GeoIP lookups, default: false
+  geoipOptions:                  # only needed for automatic GeoIP database updates
+    accountId: "your maxmind account id"
+    licenseKey: "your maxmind license key"
+```
+
+> A section left empty (for example `options:` with every line commented out) loses its default values: `healthcheck` becomes `false`. Remove the whole section instead.
+
+## Docker
+
+### Image tags
+
+| Tag | Content |
+|---|---|
+| `latest` | Latest release |
+| `v1` | Latest `1.x.x` release |
+| `v1.0.14` | A specific release |
+| `develop`, `main`, … | Latest build of a branch |
+
+### Run the container
+
+```
+docker run -d \
    --name=emby_exporter \
+   -p 9210:9210 \
    -e TZ=Europe/Paris \
-   -e CONFIG_FILE=NAME_OF_YOUR_FILE.yml \
-   -v '/path/to/your/config/file.yml:/config/file.yml' \
+   -e CONFIG_FILE=/config/config.yml \
+   -v '/path/to/your/config/:/config/' \
    bagul/goemby_exporter:latest
 ```
 
-### Config file example
-```yaml
-server:
-  url: "http://<ip|domain name>"
-  port: 8096
-  token: "your token"
-  userID: "your userID"
-options: # optional
-  geoip: true # optional : default false
-  geoipOptions: # optional if geoip is true
-    accountId: "your maxmind account id" # optional
-    licenseKey: "your maxmind license key" # optional
+`CONFIG_FILE` must be the path of the file **inside** the container.
+
+The image has a Docker `HEALTHCHECK` on `http://localhost:9210/health`. If you set `options.healthcheck: false` or change `exporter.port`, disable it with `--no-healthcheck` (or `healthcheck: disable: true` in docker compose), otherwise the container is reported as `unhealthy`.
+
+### Build the image
+
+The image embeds a MaxMind database: download the GeoLite2 City database from [MaxMind](https://www.maxmind.com/en/home) and place it at the root of the project as `geoip.mmdb`, then:
+
+```
+docker build --build-arg VERSION=dev -t emby_exporter .
 ```
 
 ## MaxMind GeoIP Database
@@ -95,29 +156,17 @@ For more detailed information on MaxMind database updates, see their [developer 
    ```
    - The exporter will automatically download and update the GeoIP database
 
-### Environment Variables
+### Custom database path
 
-You can also specify a custom path for your GeoIP database using an environment variable:
+You can store the GeoIP database elsewhere with `GEOIP_DB` (or `-g`). With automatic updates, keep it in a volume so the updated database survives a container restart:
 
 ```
-GEOIP_DB=/path/to/your/GeoLite2-City.mmdb
-```
-
-In a Docker container:
-```
-docker run -d -it \
+docker run -d \
    --name=emby_exporter \
+   -p 9210:9210 \
    -e TZ=Europe/Paris \
-   -e CONFIG_FILE=NAME_OF_YOUR_FILE.yml \
+   -e CONFIG_FILE=/config/config.yml \
    -e GEOIP_DB=/config/GeoLite2-City.mmdb \
    -v '/path/to/your/config/:/config/' \
    bagul/goemby_exporter:latest
 ```
-
-### How to get your userID
-
-1. Login to your emby server
-2. Go to the settings page
-3. Go to the profile page
-4. In the url, you will find your userID
-    (ex: http://localhost:8096/web/index.html#!/settings/profile.html?userId=<YOUR_USER_ID>&serverId=xxxxx)

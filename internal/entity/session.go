@@ -120,7 +120,12 @@ func JoinTranscodeReasons(transcodeReasons []TranscodeReasons) string {
 }
 
 func (t TranscodeReasons) String() string {
-	return string(transcodeReasons[string(t)])
+
+	if val, ok := transcodeReasons[string(t)]; ok {
+		return string(val)
+	}
+
+	return string(t)
 }
 
 func (pm PlayMethod) String() string {
@@ -128,6 +133,9 @@ func (pm PlayMethod) String() string {
 }
 
 func (s *Sessions) IsEpisode() bool {
+	if s.NowPlayingItem == nil || s.NowPlayingItem.Type == "" {
+		return false
+	}
 	return s.NowPlayingItem.Type == "Episode"
 }
 
@@ -161,15 +169,6 @@ func (s *Sessions) GetTranscodeReason() string {
 		return ""
 	}
 	return JoinTranscodeReasons(s.TranscodingInfo.TranscodeReasons)
-}
-
-func (s *Sessions) GetEpisodeNumber() string {
-	if s.IsEpisode() {
-		if s.NowPlayingItem.IndexNumber > 0 {
-			return "Ep. " + strconv.Itoa(s.NowPlayingItem.IndexNumber) + " - "
-		}
-	}
-	return ""
 }
 
 func (s *Sessions) GetRuntimeTick() int64 {
@@ -213,10 +212,15 @@ func bitsToHumanReadable(bits uint64) string {
 }
 
 func (s *Sessions) GetBitrateValue() uint64 {
-	if s.TranscodingInfo == nil {
+	if s.TranscodingInfo != nil && s.TranscodingInfo.Bitrate > 0 {
+		return s.TranscodingInfo.Bitrate
+	}
+
+	if s.NowPlayingItem != nil && s.NowPlayingItem.Bitrate > 0 {
 		return s.NowPlayingItem.Bitrate
 	}
-	return s.TranscodingInfo.Bitrate
+
+	return 0
 }
 
 func (s *Sessions) GetBitrateFormat() string {
@@ -232,8 +236,9 @@ func (s *Sessions) GetPlayMethod() string {
 }
 
 func (s *Sessions) GetPercentPlayed() int64 {
-	if s.NowPlayingItem.RunTimeTicks > 0 {
-		return s.PlayState.PositionTicks * 100 / s.NowPlayingItem.RunTimeTicks
+	var runtimeTicks = s.GetRuntimeTick()
+	if runtimeTicks > 0 {
+		return s.PlayState.PositionTicks * 100 / runtimeTicks
 	}
 	return 0
 }

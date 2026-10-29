@@ -14,9 +14,14 @@ before:
     - go mod tidy
 
 builds:
-  - main: ./cmd/app
+  - main: ./cmd/emby_exporter_go
+    binary: emby_exporter
     env:
       - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{.Version}}
     goos:
       - linux
       - windows

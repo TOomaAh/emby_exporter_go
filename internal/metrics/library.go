@@ -3,6 +3,7 @@ package metrics
 import (
 	"TOomaAh/emby_exporter_go/pkg/emby"
 	"TOomaAh/emby_exporter_go/pkg/logger"
+	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -37,19 +38,24 @@ func (c *LibraryCollector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
+	var wg sync.WaitGroup
+
 	for _, l := range libraries.LibraryItem {
-		librarySize, err := c.server.GetLibrarySize(l.ItemID, l.LibraryOptions.ContentType)
+		wg.Go(func() {
+			librarySize, err := c.server.GetLibrarySize(l.ItemID, l.LibraryOptions.ContentType)
 
-		if err != nil {
-			c.logger.Error("Error while getting library size: %s", err)
-			return
-		}
+			if err != nil {
+				c.logger.Error("Error while getting library size for %s: %s", l.Name, err)
+				return
+			}
 
-		ch <- prometheus.MustNewConstMetric(
-			c.library,
-			prometheus.GaugeValue, float64(librarySize),
-			l.ItemID,
-			l.Name,
-		)
+			ch <- prometheus.MustNewConstMetric(
+				c.library,
+				prometheus.GaugeValue, float64(librarySize),
+				l.ItemID,
+				l.Name,
+			)
+		})
 	}
+	wg.Wait()
 }

@@ -1,25 +1,29 @@
-FROM golang:1.19-alpine
+FROM golang:1.26-alpine AS build
 
-WORKDIR /app
-COPY . .
+WORKDIR /src
+
+# Download dependencies first so this layer is cached until go.mod/go.sum change.
+COPY go.mod go.sum ./
 RUN go mod download
-RUN go build -o emby_exporter ./cmd/emby_exporter_go
-RUN apk update && apk add dos2unix tzdata && dos2unix entrypoint.sh
+
+COPY . .
+ARG VERSION=dev
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" \
+    -o /emby_exporter ./cmd/emby_exporter_go
 
 
-FROM alpine:latest
+FROM alpine:3.22
+
+RUN apk add --no-cache tzdata && mkdir /config && touch /config/config.yml
 
 WORKDIR /app
 
-COPY --from=0 /app/emby_exporter /app/emby_exporter
-COPY --from=0 /app/entrypoint.sh /app/entrypoint.sh
-COPY --from=0 /app/geoip.mmdb /app/geoip.mmdb
-
-RUN apk update && apk add tzdata && rm -rf /var/cache/apk/*
-
-RUN chmod +x entrypoint.sh
-RUN mkdir /config && touch /config/config.yml
+COPY --from=build /emby_exporter /app/emby_exporter
+COPY geoip.mmdb /app/geoip.mmdb
 
 EXPOSE 9210
 
-ENTRYPOINT [ "./entrypoint.sh" ]
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD wget -qO /dev/null http://localhost:9210/health || exit 1
+
+ENTRYPOINT ["/app/emby_exporter"]

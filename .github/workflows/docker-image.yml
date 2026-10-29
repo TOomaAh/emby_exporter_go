@@ -3,16 +3,66 @@ name: Build and Push Docker Image
 on:
   push:
     branches:
-      - dev
-      - v*
-      - latest
+      - "**"
+    tags:
+      - "v*"
   pull_request:
     branches:
-      - v*
-      - latest
+      - main
+      - develop
+
+# A new push on the same branch cancels the build still running for it.
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: bagul/goemby_exporter
+  # Tags:
+  #   branch       -> branch name (slashes become dashes, e.g. feat/x -> feat-x)
+  #   git tag v*   -> version + major + latest (e.g. v1.0.14, v1, latest)
+  #   pull request -> pr-<number> (built, never pushed)
+  # latest and vX only move on a release tag, never on a branch push.
+  META_TAGS: |
+    type=ref,event=branch
+    type=semver,pattern=v{{version}}
+    type=semver,pattern=v{{major}}
+    type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+    type=ref,event=pr
+  PUSH: ${{ github.event_name != 'pull_request' }}
 
 jobs:
+  # Downloads the MaxMind database at most once a day: every build of the day,
+  # and every platform of each build, reuses it from the Actions cache.
+  geoip:
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.key.outputs.key }}
+    steps:
+      - name: Compute cache key
+        id: key
+        run: echo "key=geolite2-city-$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore MaxMind DB from cache
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: geoip.mmdb
+          key: ${{ steps.key.outputs.key }}
+
+      - name: Download MaxMind DB
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          LICENSE_KEY: ${{ secrets.MAXMIND_LICENSE_KEY }}
+          ACCOUNT_ID: ${{ secrets.MAXMIND_ACCOUNT_ID }}
+        run: |
+          curl -fsSL -o maxmind-db.tar.gz -u "${ACCOUNT_ID}:${LICENSE_KEY}" "https://download.maxmind.com/geoip/databases/GeoLite2-City/download?suffix=tar.gz"
+          tar zxf maxmind-db.tar.gz
+          mv GeoLite2-City_*/GeoLite2-City.mmdb geoip.mmdb
+          rm -rf GeoLite2-City_* maxmind-db.tar.gz
+
   build:
+    needs: geoip
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -30,7 +80,8 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: bagul/goemby_exporter
+          images: ${{ env.IMAGE }}
+          tags: ${{ env.META_TAGS }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -39,53 +90,55 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
+        if: env.PUSH == 'true'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Download MaxMind DB
-        run: |
-          LICENSE_KEY=${{ secrets.MAXMIND_LICENSE_KEY }}
-          ACCOUNT_ID=${{ secrets.MAXMIND_ACCOUNT_ID }}
-          curl -o maxmind-db.tar.gz -O -J -L -u ${ACCOUNT_ID}:${LICENSE_KEY} "https://download.maxmind.com/geoip/databases/GeoLite2-City/download?suffix=tar.gz"
-          tar zxvf maxmind-db.tar.gz
-          mv GeoLite2-City_*/GeoLite2-City.mmdb geoip.mmdb
-          rm -rf GeoLite2-City_* maxmind-db.tar.gz
+      - name: Restore MaxMind DB
+        uses: actions/cache/restore@v4
+        with:
+          path: geoip.mmdb
+          key: ${{ needs.geoip.outputs.cache-key }}
+          fail-on-cache-miss: true
 
       - name: Build and push by digest
         id: build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,name=bagul/goemby_exporter,push-by-digest=true,name-canonical=true,push=true
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=${{ env.PUSH }}
+          cache-from: type=gha,scope=${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
 
       - name: Export digest
+        if: env.PUSH == 'true'
         run: |
           mkdir -p /tmp/digests
           digest="${{ steps.build.outputs.digest }}"
-          # Le fichier est nommé sans le préfixe "sha256:"
           touch "/tmp/digests/${digest#sha256:}"
 
-      # Calculer un nom d'artifact unique à partir de la variable de matrice
       - name: Set platform artifact name
-        id: set_artifact_name
-        shell: bash
-        run: |
-          sanitized=$(echo "${{ matrix.platform }}" | tr '/' '-')
-          echo "artifact_name=digests-$sanitized" >> $GITHUB_OUTPUT
+        if: env.PUSH == 'true'
+        id: artifact
+        run: echo "name=digests-$(echo '${{ matrix.platform }}' | tr '/' '-')" >> "$GITHUB_OUTPUT"
 
       - name: Upload digest
+        if: env.PUSH == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.set_artifact_name.outputs.artifact_name }}
+          name: ${{ steps.artifact.outputs.name }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
 
   merge:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     needs:
       - build
@@ -94,6 +147,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -102,7 +157,8 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: bagul/goemby_exporter
+          images: ${{ env.IMAGE }}
+          tags: ${{ env.META_TAGS }}
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -110,26 +166,12 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Get version from go file
-        id: version
-        run: |
-          echo ::set-output name=version::$(grep -oP 'version = "\K[^"]+' main.go)
-
       - name: Create manifest list and push
         working-directory: /tmp/digests
-        if: github.event_name != 'pull_request'
         run: |
-          DIGEST_ARGS=""
-          for digestfile in $(find . -type f); do
-            DIGEST_SHA=$(basename "$digestfile")
-            DIGEST_ARGS="$DIGEST_ARGS bagul/goemby_exporter@sha256:$DIGEST_SHA"
-          done
-
           docker buildx imagetools create \
             $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $DIGEST_ARGS
+            $(printf '${{ env.IMAGE }}@sha256:%s ' *)
 
       - name: Inspect image
-        if: github.event_name != 'pull_request'
-        run: |
-          docker buildx imagetools inspect bagul/goemby_exporter:${{ steps.meta.outputs.version }}
+        run: docker buildx imagetools inspect ${{ env.IMAGE }}:${{ steps.meta.outputs.version }}
