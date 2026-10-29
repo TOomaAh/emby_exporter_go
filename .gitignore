@@ -6,6 +6,8 @@
 *.dylib
 *.mmdb
 *.yml
+# Keep the GitHub workflows despite the *.yml rule above.
+!.github/workflows/*.yml
 # Test binary, built with `go test -c`
 *.test
 

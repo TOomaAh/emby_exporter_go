@@ -99,10 +99,6 @@ func Run(cfg *conf.Config, geoIp geoip.GeoIP, log logger.Interface) {
 	// Start the HTTP server.
 	port := cfg.Exporter.Port
 
-	if port == 0 {
-		port = 9210
-	}
-
 	log.Info("Beginning to serve on port %d", port)
 	log.Info("You can see the metrics on http://localhost:%d/metrics", port)
 
