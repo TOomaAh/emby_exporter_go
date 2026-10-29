@@ -73,7 +73,7 @@ A command line flag takes precedence over its environment variable.
 
 ## Config file
 
-Only `server.token` are required, every other key has a default value.
+Only `server.token` is required, every other key has a default value.
 
 ```yaml
 server:

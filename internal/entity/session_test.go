@@ -69,6 +69,7 @@ func TestGetBitrateValue(t *testing.T) {
 		{"no item", Sessions{}, 0},
 		{"direct play", Sessions{NowPlayingItem: &NowPlayingItem{Bitrate: 8000}}, 8000},
 		{"transcoding", Sessions{NowPlayingItem: &NowPlayingItem{Bitrate: 8000}, TranscodingInfo: &TranscodingInfo{Bitrate: 3000}}, 3000},
+		{"transcoding, unknown source bitrate", Sessions{NowPlayingItem: &NowPlayingItem{}, TranscodingInfo: &TranscodingInfo{Bitrate: 3000}}, 3000},
 	}
 	for _, tt := range tests {
 		if got := tt.session.GetBitrateValue(); got != tt.want {
@@ -115,5 +116,19 @@ func TestIsEpisode(t *testing.T) {
 		if got := s.IsEpisode(); got != tt.want {
 			t.Errorf("%s: IsEpisode() = %v, want %v", tt.name, got, tt.want)
 		}
+	}
+}
+
+// A reason added by a newer Emby must stay readable instead of disappearing.
+func TestTranscodeReasonUnknown(t *testing.T) {
+	if got := TranscodeReasons("HdrNotSupported").String(); got != "HdrNotSupported" {
+		t.Errorf("String() = %q, want the raw reason", got)
+	}
+
+	s := &Sessions{TranscodingInfo: &TranscodingInfo{
+		TranscodeReasons: []TranscodeReasons{"VideoCodecNotSupported", "HdrNotSupported"},
+	}}
+	if got, want := s.GetTranscodeReason(), "Video Codec Not Supported, HdrNotSupported"; got != want {
+		t.Errorf("GetTranscodeReason() = %q, want %q", got, want)
 	}
 }

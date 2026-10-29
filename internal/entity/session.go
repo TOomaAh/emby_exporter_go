@@ -120,7 +120,12 @@ func JoinTranscodeReasons(transcodeReasons []TranscodeReasons) string {
 }
 
 func (t TranscodeReasons) String() string {
-	return string(transcodeReasons[string(t)])
+
+	if val, ok := transcodeReasons[string(t)]; ok {
+		return string(val)
+	}
+
+	return string(t)
 }
 
 func (pm PlayMethod) String() string {
@@ -207,13 +212,15 @@ func bitsToHumanReadable(bits uint64) string {
 }
 
 func (s *Sessions) GetBitrateValue() uint64 {
-	if s.NowPlayingItem == nil || s.NowPlayingItem.Bitrate == 0 {
-		return 0
+	if s.TranscodingInfo != nil && s.TranscodingInfo.Bitrate > 0 {
+		return s.TranscodingInfo.Bitrate
 	}
-	if s.TranscodingInfo == nil {
+
+	if s.NowPlayingItem != nil && s.NowPlayingItem.Bitrate > 0 {
 		return s.NowPlayingItem.Bitrate
 	}
-	return s.TranscodingInfo.Bitrate
+
+	return 0
 }
 
 func (s *Sessions) GetBitrateFormat() string {
